@@ -7,12 +7,12 @@
 #define DATA_SIZE 1000000
 
 const char * KernelSource =
-"__kernel void hello(__global float * input, __global float * output)\n"\
-"{\n"\
-"  size_t id = get_global_id(0);\n"\
-"  output[id] = (input[id] * 2 / 2) * 3 / 3;\n"\
-"}\n"\
-"\n";
+"__kernel void hello(__global float * input, __global float * output)   \n"\
+"{                                                                      \n"\
+"  size_t id = get_global_id(0);                                        \n"\
+"  output[id] = (input[id] * 2 / 2) * 3 / 3;                            \n"\
+"}                                                                      \n"\
+"                                                                       \n";
 
 int main(void)
 {

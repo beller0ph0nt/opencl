@@ -5,6 +5,15 @@
 
 #define DATA_SIZE 10
 
+int byte_count(const char * fname)
+{
+    int ret = 0x00;
+
+
+
+    return ret;
+}
+
 int main()
 {
     unsigned int in_count = 1;
@@ -77,7 +86,6 @@ int main()
     cl_kernel kernel = clCreateKernel(program, "num_threshold", &err);
 
     cl_mem input  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * DATA_SIZE,       NULL, NULL);
-    //cl_mem size   = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(unsigned int),            NULL, NULL);
     cl_mem count  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(unsigned int),            NULL, NULL);
     cl_mem output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
 

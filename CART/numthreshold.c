@@ -2,17 +2,11 @@
 
 #include <stdio.h>
 #include <CL/cl.h>
+#include <string.h>
+
+#include "kernel.h"
 
 #define DATA_SIZE 10
-
-int byte_count(const char * fname)
-{
-    int ret = 0x00;
-
-
-
-    return ret;
-}
 
 int main()
 {
@@ -20,6 +14,7 @@ int main()
     float in_data[DATA_SIZE] = { 0 };
     float out_data[DATA_SIZE - 1] = { 0 };
 
+    /*
     const char * kernel_src =
     "kernel void num_threshold(constant float * in,     \r\n"
     "                          constant uint * count,   \r\n"
@@ -33,6 +28,52 @@ int main()
     "                                                   \r\n"
     "   out[e] = (in[e] + in[e + 1]) / 2;               \r\n"
     "}                                                  \r\n";
+    */
+
+    /*
+    const char * kernel_src =
+    "kernel void num_threshold(constant float * in,\n"
+    "                          constant uint * count,\n"
+    "                          global float * out)\n"
+    "{\n"
+    "    size_t id = get_global_id(0);\n"
+    "    uint cnt = *count;\n"
+    "    uint i = id / cnt;\n"
+    "    uint r = id % cnt;\n"
+    "    uint e = cnt * i + r;\n"
+    "\n"
+    "    out[e] = (in[e] + in[e + 1]) / 2;\n"
+    "}\n";
+    */
+
+
+    //printf("kernel_src len: %d byte\n", strlen(kernel_src));
+
+    int len;
+    char fname[] = "average.cl";
+    if (kernel_len(fname, &len) == 0)
+    {
+        printf("%s len: %d byte\n", fname, len);
+    }
+    else
+    {
+        return 1;
+    }
+
+    char kernel_src[len + 1];
+    memset(kernel_src, '\0', sizeof(kernel_src));
+    printf("sizeof(kernel_src): %d", sizeof(kernel_src));
+    if (kernel_read(fname, len, kernel_src) == 0)
+    {
+        printf("\n-------------------------------------------------\n");
+        printf("%s", kernel_src);
+        printf("\n-------------------------------------------------\n");
+    }
+    else
+    {
+        return 1;
+    }
+
 
     int i;
 

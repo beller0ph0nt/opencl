@@ -12,7 +12,7 @@
 
 int main()
 {
-    unsigned int in_count = 1;
+    unsigned int in_count = DATA_SIZE;
     float in_data[DATA_SIZE] = { 0 };
     float out_data[DATA_SIZE - 1] = { 0 };
 
@@ -42,11 +42,7 @@ int main()
         return 1;
     }
 
-    printf("sizeof(kernel_src): %d\n", strlen(kernel_src[0]));
-
-
     int i;
-
     for (i = 0; i < DATA_SIZE; i++)
     {
         in_data[i] = i;

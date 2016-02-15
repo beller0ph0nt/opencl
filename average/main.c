@@ -106,8 +106,9 @@ int main()
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &count);
     clSetKernelArg(kernel, 2, sizeof(cl_mem), &output);
 
-    size_t global = DATA_SIZE - 1;
-    clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global, NULL, 0, NULL, NULL);
+    size_t global_work_size = DATA_SIZE - 1;
+    size_t local_work_size = 3;
+    clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
     clFinish(command_queue);
 
     clEnqueueReadBuffer(command_queue, output, CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), out_data, 0, NULL, NULL);

@@ -29,6 +29,7 @@ int main(void)
     cl_mem input, output;
     size_t global;
     struct timespec start, stop;
+    long dsec, dnsec;
 
     float inputData[DATA_SIZE] = { 0 };
     float results[DATA_SIZE] = { 0 };
@@ -46,7 +47,9 @@ int main(void)
         results[i] = (inputData[i] * 2 / 2) * 3 / 3;
     }
     clock_gettime(CLOCK_REALTIME, &stop);
-    printf("CPU { sec: %ld, nsec: %ld }\n", stop.tv_sec - start.tv_sec, stop.tv_nsec - start.tv_nsec);
+    dsec = stop.tv_sec - start.tv_sec;
+    dnsec = stop.tv_nsec - start.tv_nsec;
+    printf("CPU: %f sec { sec: %ld, nsec: %ld }\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);
 
     for (i = 0; i < DATA_SIZE; i++)
     {
@@ -108,7 +111,9 @@ int main(void)
     clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global, NULL, 0, NULL, NULL);
     clFinish(command_queue);
     clock_gettime(CLOCK_REALTIME, &stop);
-    printf("CPU SSE { sec: %ld, nsec: %ld }\n", stop.tv_sec - start.tv_sec, stop.tv_nsec - start.tv_nsec);
+    dsec = stop.tv_sec - start.tv_sec;
+    dnsec = stop.tv_nsec - start.tv_nsec;
+    printf("CPU SSE: %f sec { sec: %ld, nsec: %ld }\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);
 
     // copy the results from out of the output buffer
     clEnqueueReadBuffer(command_queue, output, CL_TRUE, 0, sizeof(float) * DATA_SIZE, results, 0, NULL, NULL);

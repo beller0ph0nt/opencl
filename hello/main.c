@@ -41,12 +41,13 @@ int main(void)
         inputData[i] = i + 1;
     }
 
-    clock_gettime(CLOCK_REALTIME, &start);
+    //CLOCK_PROCESS_CPUTIME_ID
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);  //    clock_gettime(CLOCK_REALTIME, &start);
     for (i = 0; i < DATA_SIZE; i++)
     {
         results[i] = (inputData[i] * 2 / 2) * 3 / 3;
     }
-    clock_gettime(CLOCK_REALTIME, &stop);
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);   //clock_gettime(CLOCK_REALTIME, &stop);
     dsec = stop.tv_sec - start.tv_sec;
     dnsec = stop.tv_nsec - start.tv_nsec;
     printf("CPU: %f sec { sec: %ld, nsec: %ld }\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);
@@ -106,11 +107,11 @@ int main(void)
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &output);
     global = DATA_SIZE;
 
-    clock_gettime(CLOCK_REALTIME, &start);
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);    //clock_gettime(CLOCK_REALTIME, &start);
     // enqueue the kernel command for execution
     clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global, NULL, 0, NULL, NULL);
     clFinish(command_queue);
-    clock_gettime(CLOCK_REALTIME, &stop);
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);   //clock_gettime(CLOCK_REALTIME, &stop);
     dsec = stop.tv_sec - start.tv_sec;
     dnsec = stop.tv_nsec - start.tv_nsec;
     printf("CPU SSE: %f sec { sec: %ld, nsec: %ld }\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);

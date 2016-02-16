@@ -93,17 +93,23 @@ int main()
         return 1;
     }
 
-    cl_kernel kernel = clCreateKernel(program, "num_threshold", &err);
+    cl_kernel kernel = clCreateKernel(program, "avg", &err);
 
+    /*
     cl_mem input  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * DATA_SIZE,       NULL, NULL);
     cl_mem count  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(unsigned int),            NULL, NULL);
     cl_mem output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
+    */
 
-    clEnqueueWriteBuffer(command_queue, input, CL_TRUE, 0, sizeof(float) * DATA_SIZE, in_data,   0, NULL, NULL);
-    clEnqueueWriteBuffer(command_queue, count, CL_TRUE, 0, sizeof(unsigned int),      &in_count, 0, NULL, NULL);
+    cl_mem input_left  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
+    cl_mem input_right = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
+    cl_mem output      = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
 
-    clSetKernelArg(kernel, 0, sizeof(cl_mem), &input);
-    clSetKernelArg(kernel, 1, sizeof(cl_mem), &count);
+    clEnqueueWriteBuffer(command_queue, input_left,  CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), in_data,     0, NULL, NULL);
+    clEnqueueWriteBuffer(command_queue, input_right, CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), in_data + 1, 0, NULL, NULL);
+
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_left);
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), &input_right);
     clSetKernelArg(kernel, 2, sizeof(cl_mem), &output);
 
     size_t global_work_size = DATA_SIZE - 1;
@@ -121,8 +127,8 @@ int main()
     printf("\n");
 
     clReleaseMemObject(output);
-    clReleaseMemObject(count);
-    clReleaseMemObject(input);
+    clReleaseMemObject(input_right);
+    clReleaseMemObject(input_left);
     clReleaseKernel(kernel);
     clReleaseProgram(program);
     clReleaseCommandQueue(command_queue);

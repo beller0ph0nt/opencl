@@ -1,5 +1,6 @@
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 
+#include <time.h>
 #include <stdio.h>
 #include <CL/cl.h>
 #include <stdlib.h>
@@ -7,11 +8,16 @@
 
 #include "kernel.h"
 
+#define CLOCK_ID        CLOCK_PROCESS_CPUTIME_ID    // CLOCK_REALTIME
 #define KERNELS_COUNT   1
-#define DATA_SIZE       10
+#define VECTOR_LEN      16
+#define DATA_SIZE       1000000
 
 int main()
 {
+    struct timespec start, stop;
+    long dsec, dnsec;
+
     unsigned int in_count = DATA_SIZE;
     float in_data[DATA_SIZE] = { 0 };
     float out_data[DATA_SIZE - 1] = { 0 };
@@ -20,7 +26,9 @@ int main()
     char fname[] = "average.cl";
     if (kernel_len(fname, &len) == 0)
     {
+        /*
         printf("%s len: %d byte\n", fname, len);
+        */
     }
     else
     {
@@ -33,9 +41,11 @@ int main()
     kernel_src[0][len] = 0;
     if (kernel_read(fname, len, kernel_src[0]) == 0)
     {
+        /*
         printf("--BEGIN--\n");
         printf("%s", kernel_src[0]);
         printf("--END--\n");
+        */
     }
     else
     {
@@ -112,19 +122,30 @@ int main()
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &input_right);
     clSetKernelArg(kernel, 2, sizeof(cl_mem), &output);
 
-    size_t global_work_size = DATA_SIZE - 1;
-    size_t local_work_size = 3;
+    size_t tmp = (DATA_SIZE - 1) / VECTOR_LEN;
+    size_t global_work_size = ((DATA_SIZE - 1) % VECTOR_LEN == 0) ? tmp : tmp + 1;
+    size_t local_work_size = 1;
+
+    clock_gettime(CLOCK_ID, &start);
+
     clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
     clFinish(command_queue);
 
+    clock_gettime(CLOCK_ID, &stop);
+    dsec = stop.tv_sec - start.tv_sec;
+    dnsec = stop.tv_nsec - start.tv_nsec;
+    printf("CPU SSE: %f sec { sec: %ld, nsec: %ld }\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);
+
     clEnqueueReadBuffer(command_queue, output, CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), out_data, 0, NULL, NULL);
 
+    /*
     printf("output: ");
     for(i = 0; i < DATA_SIZE - 1; i++)
     {
         printf("%f ", out_data[i]);
     }
     printf("\n");
+    */
 
     clReleaseMemObject(output);
     clReleaseMemObject(input_right);

@@ -71,6 +71,12 @@ int init()
     return ret;
 }
 
+int avg(float *in, long )
+{
+    int ret = 0x00;
+    return ret;
+}
+
 void cpu_test()
 {
     /*

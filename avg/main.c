@@ -28,6 +28,35 @@ int init()
         kernel_src[0][len] = 0;
         if (kernel_read(KERNEL_SRC, len, kernel_src[0]) == 0)
         {
+            cl_platform_id  platform_id;
+            cl_uint         num_of_platforms = 0;
+            if (clGetPlatformIDs(1, &platform_id, &num_of_platforms) == CL_SUCCESS)
+            {
+                cl_device_id    device_id;
+                cl_uint         num_of_devices = 0;
+                if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, &num_of_devices) == CL_SUCCESS)
+                {
+                    cl_context_properties properties[3] = {
+                        CL_CONTEXT_PLATFORM,
+                        (cl_context_properties) platform_id,
+                        0
+                    };
+
+                    cl_int      err;
+                    cl_context  context = clCreateContext(properties, 1, &device_id, NULL, NULL, &err);
+                    cl_command_queue command_queue = clCreateCommandQueue(context, device_id, (cl_command_queue_properties) 0, &err);
+                }
+                else
+                {
+                    printf("clGetDeviceIDs [ ERROR ]\n");
+                    return 1;
+                }
+            }
+            else
+            {
+                printf("clGetPlatformIDs [ ERROR ]\n");
+                ret |= 0x04;
+            }
         }
         else
         {
@@ -67,6 +96,13 @@ int main()
     float in_data[DATA_SIZE] = { 0 };
     float out_data[DATA_SIZE - 1] = { 0 };
 
+    int i;
+    for (i = 0; i < DATA_SIZE; i++)
+    {
+        in_data[i] = i;
+    }
+
+
     int len;
     if (kernel_len(KERNEL_SRC, &len) == 0)
     {
@@ -96,11 +132,7 @@ int main()
         return 1;
     }
 
-    int i;
-    for (i = 0; i < DATA_SIZE; i++)
-    {
-        in_data[i] = i;
-    }
+
 
     cl_platform_id  platform_id;
     cl_uint         num_of_platforms = 0;

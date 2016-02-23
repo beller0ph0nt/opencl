@@ -7,27 +7,71 @@
 #include <string.h>
 
 #include "kernel.h"
+#include "params.h"
 
 #define CLOCK_ID        CLOCK_PROCESS_CPUTIME_ID    // CLOCK_REALTIME
 #define KERNELS_COUNT   1
-#define VECTOR_LEN      16
 #define DATA_SIZE       1000000
+#define KERNEL_SRC      "average.cl"
+#define BUILD_OPTIONS   "-I ./"
+
+int init()
+{
+    int ret = 0x00;
+
+    int len = 0;
+    if (kernel_len(KERNEL_SRC, &len) == 0)
+    {
+        char ** kernel_src = NULL;
+        kernel_src = malloc(sizeof(char *) * KERNELS_COUNT);
+        kernel_src[0] = malloc(sizeof(char) * (len + 1));
+        kernel_src[0][len] = 0;
+        if (kernel_read(KERNEL_SRC, len, kernel_src[0]) == 0)
+        {
+        }
+        else
+        {
+            ret |= 0x02;
+        }
+    }
+    else
+    {
+        ret |= 0x01;
+    }
+
+    return ret;
+}
+
+void cpu_test()
+{
+    /*
+    clock_gettime(CLOCK_ID, &start);
+
+    for (i = 0; i < DATA_SIZE - 1; i++)
+    {
+        out_data[i] = (in_data[i] + in_data[i + 1]) / 2.0;
+    }
+
+    clock_gettime(CLOCK_ID, &stop);
+    dsec = stop.tv_sec - start.tv_sec;
+    dnsec = stop.tv_nsec - start.tv_nsec;
+    printf("CPU: %f sec { sec: %ld, nsec: %ld }\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);
+    */
+}
 
 int main()
 {
     struct timespec start, stop;
     long dsec, dnsec;
 
-    unsigned int in_count = DATA_SIZE;
     float in_data[DATA_SIZE] = { 0 };
     float out_data[DATA_SIZE - 1] = { 0 };
 
     int len;
-    char fname[] = "average.cl";
-    if (kernel_len(fname, &len) == 0)
+    if (kernel_len(KERNEL_SRC, &len) == 0)
     {
         /*
-        printf("%s len: %d byte\n", fname, len);
+        printf("%s len: %d byte\n", KERNEL_SRC, len);
         */
     }
     else
@@ -39,7 +83,7 @@ int main()
     kernel_src = malloc(sizeof(char *) * KERNELS_COUNT);
     kernel_src[0] = malloc(sizeof(char) * (len + 1));
     kernel_src[0][len] = 0;
-    if (kernel_read(fname, len, kernel_src[0]) == 0)
+    if (kernel_read(KERNEL_SRC, len, kernel_src[0]) == 0)
     {
         /*
         printf("--BEGIN--\n");
@@ -66,9 +110,13 @@ int main()
         return 1;
     }
 
+//    printf("platform id: %f\n", platform_id);
+//    printf("platforms available: %d\n", num_of_platforms);
+
+
     cl_device_id    device_id;
     cl_uint         num_of_devices = 0;
-    if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 1, &device_id, &num_of_devices) != CL_SUCCESS)
+    if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, &num_of_devices) != CL_SUCCESS)
     {
         printf("Unable to get device_id\n");
         return 1;
@@ -90,7 +138,7 @@ int main()
     free(kernel_src[0]);
     free(kernel_src);
 
-    if (clBuildProgram(program, 0, NULL, NULL, NULL, NULL) != CL_SUCCESS)
+    if (clBuildProgram(program, 0, NULL, BUILD_OPTIONS, NULL, NULL) != CL_SUCCESS)
     {
         printf("Error building program\n");
 
@@ -105,12 +153,6 @@ int main()
 
     cl_kernel kernel = clCreateKernel(program, "avg", &err);
 
-    /*
-    cl_mem input  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * DATA_SIZE,       NULL, NULL);
-    cl_mem count  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(unsigned int),            NULL, NULL);
-    cl_mem output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
-    */
-
     cl_mem input_left  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
     cl_mem input_right = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
     cl_mem output      = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
@@ -122,8 +164,13 @@ int main()
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &input_right);
     clSetKernelArg(kernel, 2, sizeof(cl_mem), &output);
 
-    size_t tmp = (DATA_SIZE - 1) / VECTOR_LEN;
-    size_t global_work_size = ((DATA_SIZE - 1) % VECTOR_LEN == 0) ? tmp : tmp + 1;
+    size_t div = (DATA_SIZE - 1) / V_LEN;
+    size_t global_work_size = ((DATA_SIZE - 1) % V_LEN == 0) ? div : div + 1;
+
+    /*
+     * Необходим алгоритм вычисления размера локальной группы.
+     * Он должен быть кратен 64.
+     */
     size_t local_work_size = 1;
 
     clock_gettime(CLOCK_ID, &start);
@@ -134,9 +181,11 @@ int main()
     clock_gettime(CLOCK_ID, &stop);
     dsec = stop.tv_sec - start.tv_sec;
     dnsec = stop.tv_nsec - start.tv_nsec;
-    printf("CPU SSE: %f sec { sec: %ld, nsec: %ld }\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);
+    printf("GPU SSE: %f sec { sec: %ld, nsec: %ld }\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);
 
     clEnqueueReadBuffer(command_queue, output, CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), out_data, 0, NULL, NULL);
+
+    printf("global work size: %d\tlocal work size: %d\n", global_work_size, local_work_size);
 
     /*
     printf("output: ");

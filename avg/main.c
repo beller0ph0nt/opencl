@@ -71,7 +71,7 @@ int init()
     return ret;
 }
 
-int avg(float *in, long )
+int avg(/*float *in, long */)
 {
     int ret = 0x00;
     return ret;
@@ -169,7 +169,7 @@ int main()
     cl_int      err;
     cl_context  context = clCreateContext(properties, 1, &device_id, NULL, NULL, &err);
 
-    cl_command_queue command_queue = clCreateCommandQueue(context, device_id, (cl_command_queue_properties) 0, &err);
+    cl_command_queue command_queue = clCreateCommandQueue(context, device_id, /*(cl_command_queue_properties) 0*/ CL_QUEUE_PROFILING_ENABLE, &err);
 
     cl_program program = clCreateProgramWithSource(context, 1, (const char **) kernel_src, NULL, &err);
 
@@ -213,13 +213,28 @@ int main()
 
     clock_gettime(CLOCK_ID, &start);
 
-    clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
+    cl_event myEvent;
+
+
+    clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
     clFinish(command_queue);
 
     clock_gettime(CLOCK_ID, &stop);
     dsec = stop.tv_sec - start.tv_sec;
     dnsec = stop.tv_nsec - start.tv_nsec;
     printf("GPU SSE: %f sec { sec: %ld, nsec: %ld }\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);
+
+
+    cl_ulong start_time, end_time, queued_time, submit_time;
+    clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &queued_time, NULL);
+    clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &submit_time, NULL);
+    clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL);
+    clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL);
+    //cl_ulong kernelExecTimeNs = end_time - start_time;
+    printf("queued time: %lld nsec\n", queued_time);
+    printf("submit time: %lld nsec\n", submit_time);
+    printf("start time: %lld nsec\n", start_time);
+    printf("end time: %lld nsec\n", end_time);
 
     clEnqueueReadBuffer(command_queue, output, CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), out_data, 0, NULL, NULL);
 

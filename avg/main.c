@@ -15,63 +15,70 @@
 #define KERNEL_SRC      "average.cl"
 #define BUILD_OPTIONS   "-I ./"
 
+#define MAX_DEVICES     10
+
 int init()
 {
     int ret = 0x00;
 
-    int len = 0;
-    if (kernel_len(KERNEL_SRC, &len) == 0)
-    {
-        char ** kernel_src = NULL;
-        kernel_src = malloc(sizeof(char *) * KERNELS_COUNT);
-        kernel_src[0] = malloc(sizeof(char) * (len + 1));
-        kernel_src[0][len] = 0;
-        if (kernel_read(KERNEL_SRC, len, kernel_src[0]) == 0)
-        {
-            cl_platform_id  platform_id;
-            cl_uint         num_of_platforms = 0;
-            if (clGetPlatformIDs(1, &platform_id, &num_of_platforms) == CL_SUCCESS)
-            {
-                cl_device_id    device_id;
-                cl_uint         num_of_devices = 0;
-                if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, &num_of_devices) == CL_SUCCESS)
-                {
-                    cl_context_properties properties[3] = {
-                        CL_CONTEXT_PLATFORM,
-                        (cl_context_properties) platform_id,
-                        0
-                    };
 
-                    cl_int      err;
-                    cl_context  context = clCreateContext(properties, 1, &device_id, NULL, NULL, &err);
-                    cl_command_queue command_queue = clCreateCommandQueue(context, device_id, (cl_command_queue_properties) 0, &err);
-                }
-                else
-                {
-                    printf("clGetDeviceIDs [ ERROR ]\n");
-                    return 1;
-                }
-            }
-            else
-            {
-                printf("clGetPlatformIDs [ ERROR ]\n");
-                ret |= 0x04;
-            }
-        }
-        else
-        {
-            ret |= 0x02;
-        }
-    }
-    else
-    {
-        ret |= 0x01;
-    }
+
+//    cl_platform_id  platform_id;
+//    cl_uint         num_of_platforms = 0;
+//    if (clGetPlatformIDs(1, &platform_id, &num_of_platforms) == CL_SUCCESS)
+//    {
+//        cl_device_id    device_id;
+//        cl_uint         num_of_devices = 0;
+//        if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, &num_of_devices) == CL_SUCCESS)
+//        {
+//            cl_context_properties properties[3] = {
+//                CL_CONTEXT_PLATFORM,
+//                (cl_context_properties) platform_id,
+//                0
+//            };
+
+//            cl_int      err;
+//            cl_context  context = clCreateContext(properties, 1, &device_id, NULL, NULL, &err);
+//            cl_command_queue command_queue = clCreateCommandQueue(context, device_id, (cl_command_queue_properties) 0, &err);
+//        }
+//        else
+//        {
+//            printf("clGetDeviceIDs [ ERROR ]\n");
+//            return 1;
+//        }
+//    }
+//    else
+//    {
+//        printf("clGetPlatformIDs [ ERROR ]\n");
+//        ret |= 0x04;
+//    }
+
+
+
+//    int len = 0;
+//    if (kernel_len(KERNEL_SRC, &len) == 0)
+//    {
+//        char **kernel_src = NULL;
+//        kernel_src = malloc(sizeof(char *) * KERNELS_COUNT);
+//        kernel_src[0] = malloc(sizeof(char) * (len + 1));
+//        kernel_src[0][len] = 0;
+//        if (kernel_read(KERNEL_SRC, len, kernel_src[0]) == 0)
+//        {
+//        }
+//        else
+//        {
+//            ret |= 0x02;
+//        }
+//    }
+//    else
+//    {
+//        ret |= 0x01;
+//    }
 
     return ret;
 }
 
-int avg(/*float *in, long */)
+int avg(float *in, unsigned long int len)
 {
     int ret = 0x00;
     return ret;
@@ -148,17 +155,18 @@ int main()
         return 1;
     }
 
-//    printf("platform id: %f\n", platform_id);
-//    printf("platforms available: %d\n", num_of_platforms);
+    printf("platforms available: %d\n", num_of_platforms);
 
 
-    cl_device_id    device_id;
+    cl_device_id    device_id[MAX_DEVICES];
     cl_uint         num_of_devices = 0;
-    if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, &num_of_devices) != CL_SUCCESS)
+    if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, MAX_DEVICES, device_id, &num_of_devices) != CL_SUCCESS)
     {
         printf("Unable to get device_id\n");
         return 1;
     }
+
+    printf("devices available: %d\n", num_of_devices);
 
     cl_context_properties properties[3] = {
         CL_CONTEXT_PLATFORM,
@@ -167,9 +175,9 @@ int main()
     };
 
     cl_int      err;
-    cl_context  context = clCreateContext(properties, 1, &device_id, NULL, NULL, &err);
+    cl_context  context = clCreateContext(properties, 1, &device_id[0], NULL, NULL, &err);
 
-    cl_command_queue command_queue = clCreateCommandQueue(context, device_id, /*(cl_command_queue_properties) 0*/ CL_QUEUE_PROFILING_ENABLE, &err);
+    cl_command_queue command_queue = clCreateCommandQueue(context, device_id[0], /*(cl_command_queue_properties) 0*/ CL_QUEUE_PROFILING_ENABLE, &err);
 
     cl_program program = clCreateProgramWithSource(context, 1, (const char **) kernel_src, NULL, &err);
 
@@ -182,7 +190,7 @@ int main()
 
         char buffer[4096];
         size_t length;
-        clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &length);
+        clGetProgramBuildInfo(program, device_id[0], CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &length);
 
         printf("%s\n", buffer);
 

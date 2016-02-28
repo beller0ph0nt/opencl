@@ -18,7 +18,7 @@
 #define MAX_PLATFORMS   100
 #define MAX_DEVICES     100
 
-cl_uint *devices_count;
+cl_uint *devices_on_platform;
 cl_device_id **devices;
 
 cl_uint platforms_count;
@@ -36,7 +36,7 @@ void clear()
     }
 
     free(devices);
-    free(devices_count);
+    free(devices_on_platform);
 
     if (platforms != NULL)
     {
@@ -67,7 +67,7 @@ int init()
         return 1;
     }
 
-    devices_count = malloc(sizeof(*devices_count) * platforms_count);
+    devices_on_platform = malloc(sizeof(*devices_on_platform) * platforms_count);
 
     devices = malloc(sizeof(*devices) * platforms_count);
     contexts = malloc(sizeof(*contexts) * platforms_count);
@@ -75,15 +75,15 @@ int init()
 
     for (i = 0; i < platforms_count; i++)
     {
-        clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &devices_count[i]);
+        clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &devices_on_platform[i]);
 #ifdef DEBUG
-        printf("platform: %d\t devices: %d\n", i, devices_count[i]);
+        printf("platform: %d\t devices: %d\n", i, devices_on_platform[i]);
 #endif
-        contexts[i] = malloc(sizeof(**contexts) * devices_count[i]);
-        devices[i] = malloc(sizeof(**devices) * devices_count[i]);
-        cmd_queues[i] = malloc(sizeof(**cmd_queues) * devices_count[i]);
+        contexts[i] = malloc(sizeof(**contexts) * devices_on_platform[i]);
+        devices[i] = malloc(sizeof(**devices) * devices_on_platform[i]);
+        cmd_queues[i] = malloc(sizeof(**cmd_queues) * devices_on_platform[i]);
 
-        if (clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, devices_count[i], devices[i], NULL) == CL_SUCCESS)
+        if (clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, devices_on_platform[i], devices[i], NULL) == CL_SUCCESS)
         {
             cl_context_properties properties[3] = {
                 CL_CONTEXT_PLATFORM,
@@ -92,10 +92,13 @@ int init()
             };
 
             // Создаем очереди
-            for (j = 0; j < devices_count[i]; j++)
+            for (j = 0; j < devices_on_platform[i]; j++)
             {
+#ifdef DEBUG
+                printf("platform: %d\t cmd queue: %d\n", i, j);
+#endif
                 cl_int err;
-                contexts[i][j] = clCreateContext(properties, 1, devices[i][j], NULL, NULL, &err);
+                contexts[i][j] = clCreateContext(properties, devices_on_platform[i], devices[i], NULL, NULL, &err);
                 cmd_queues[i][j] = clCreateCommandQueue(contexts[i][j], devices[i][j], (cl_command_queue_properties) 0, &err);
             }
         }

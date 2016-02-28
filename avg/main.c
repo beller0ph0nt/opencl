@@ -15,31 +15,117 @@
 #define KERNEL_SRC      "average.cl"
 #define BUILD_OPTIONS   "-I ./"
 
-#define MAX_DEVICES     10
+#define MAX_PLATFORMS   100
+#define MAX_DEVICES     100
+
+cl_uint *devices_count;
+cl_device_id **devices;
+
+cl_uint platforms_count;
+cl_platform_id *platforms;
+
+cl_context **contexts;
+cl_command_queue **cmd_queues;
+
+void clear()
+{
+    int i;
+    for(i = 0; i < platforms_count; i++)
+    {
+        free(devices[i]);
+    }
+
+    free(devices);
+    free(devices_count);
+
+    if (platforms != NULL)
+    {
+        free(platforms);
+    }
+}
+
+
 
 int init()
 {
-    int ret = 0x00;
+    int i, j;
+
+#ifdef DEBUG
+    printf("init\n");
+#endif
+    clGetPlatformIDs(0, NULL, &platforms_count);
+#ifdef DEBUG
+    printf("platforms: %d\n", platforms_count);
+#endif
+    platforms = malloc(sizeof(*platforms) * platforms_count);
+    if (clGetPlatformIDs(platforms_count, platforms, NULL) != CL_SUCCESS)
+    {
+#ifdef DEBUG
+        printf("clGetPlatformIDs [ ERROR ]\n");
+#endif
+        // !!! необходимо освободить выделенную память !!!
+        return 1;
+    }
+
+    devices_count = malloc(sizeof(*devices_count) * platforms_count);
+
+    devices = malloc(sizeof(*devices) * platforms_count);
+    contexts = malloc(sizeof(*contexts) * platforms_count);
+    cmd_queues = malloc(sizeof(*cmd_queues) * platforms_count);
+
+    for (i = 0; i < platforms_count; i++)
+    {
+        clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &devices_count[i]);
+#ifdef DEBUG
+        printf("platform: %d\t devices: %d\n", i, devices_count[i]);
+#endif
+        contexts[i] = malloc(sizeof(**contexts) * devices_count[i]);
+        devices[i] = malloc(sizeof(**devices) * devices_count[i]);
+        cmd_queues[i] = malloc(sizeof(**cmd_queues) * devices_count[i]);
+
+        if (clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, devices_count[i], devices[i], NULL) == CL_SUCCESS)
+        {
+            cl_context_properties properties[3] = {
+                CL_CONTEXT_PLATFORM,
+                (cl_context_properties) platforms[i],
+                0
+            };
+
+            // Создаем очереди
+            for (j = 0; j < devices_count[i]; j++)
+            {
+                cl_int err;
+                contexts[i][j] = clCreateContext(properties, 1, devices[i][j], NULL, NULL, &err);
+                cmd_queues[i][j] = clCreateCommandQueue(contexts[i][j], devices[i][j], (cl_command_queue_properties) 0, &err);
+            }
+        }
+        else
+        {
+            // !!! необходимо освободить выделенную память !!!
+            return 3;
+        }
+    }
 
 
 
-//    cl_platform_id  platform_id;
-//    cl_uint         num_of_platforms = 0;
-//    if (clGetPlatformIDs(1, &platform_id, &num_of_platforms) == CL_SUCCESS)
+//    cl_platform_id  platforms[MAX_PLATFORMS];
+
+//    if (clGetPlatformIDs(MAX_PLATFORMS, platforms, &num_of_platforms) == CL_SUCCESS)
 //    {
-//        cl_device_id    device_id;
-//        cl_uint         num_of_devices = 0;
-//        if (clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, &num_of_devices) == CL_SUCCESS)
-//        {
-//            cl_context_properties properties[3] = {
-//                CL_CONTEXT_PLATFORM,
-//                (cl_context_properties) platform_id,
-//                0
-//            };
 
-//            cl_int      err;
-//            cl_context  context = clCreateContext(properties, 1, &device_id, NULL, NULL, &err);
-//            cl_command_queue command_queue = clCreateCommandQueue(context, device_id, (cl_command_queue_properties) 0, &err);
+//        for (i = 0; i < num_of_platforms; i++)
+//        {
+
+//        }
+
+
+//        cl_device_id    device_id[MAX_DEVICES];
+//        cl_uint         num_of_devices = 0;
+//        if (clGetDeviceIDs(platform[i], CL_DEVICE_TYPE_GPU, MAX_DEVICES, device_id, &num_of_devices) == CL_SUCCESS)
+//        {
+
+
+
 //        }
 //        else
 //        {
@@ -75,7 +161,7 @@ int init()
 //        ret |= 0x01;
 //    }
 
-    return ret;
+    return 0;
 }
 
 int avg(float *in, unsigned long int len)
@@ -103,6 +189,8 @@ void cpu_test()
 
 int main()
 {
+    init();
+
     struct timespec start, stop;
     long dsec, dnsec;
 
@@ -178,6 +266,13 @@ int main()
     cl_context  context = clCreateContext(properties, 1, &device_id[0], NULL, NULL, &err);
 
     cl_command_queue command_queue = clCreateCommandQueue(context, device_id[0], /*(cl_command_queue_properties) 0*/ CL_QUEUE_PROFILING_ENABLE, &err);
+
+
+
+
+
+
+
 
     cl_program program = clCreateProgramWithSource(context, 1, (const char **) kernel_src, NULL, &err);
 

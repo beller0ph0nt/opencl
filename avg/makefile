@@ -5,4 +5,4 @@ main.o: main.c
 kernel.o: kernel.c kernel.h
 	$(CC) -c $(CFLAGS) -o $@ kernel.c
 clean:
-	rm -f *.o average
+	rm -f *.o avg

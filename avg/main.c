@@ -18,25 +18,94 @@
 #define MAX_PLATFORMS   100
 #define MAX_DEVICES     100
 
-cl_uint *devices_on_platform;
-cl_device_id **devices;
+cl_uint *devices_on_platform = NULL;
+cl_device_id **devices = NULL;
 
-cl_uint platforms_count;
-cl_platform_id *platforms;
+cl_uint platforms_count = 0;
+cl_platform_id *platforms = NULL;
 
-cl_context **contexts;
-cl_command_queue **cmd_queues;
+cl_context **contexts = NULL;
+cl_command_queue **cmd_queues = NULL;
+
+void free_ptr_2d(void **p, unsigned int len_2d)
+{
+    int i;
+
+    if (p != NULL)
+    {
+        for (i = 0; i < len_2d; i++)
+        {
+            if (p[i] != NULL)
+            {
+                free(p[i]);
+            }
+        }
+
+        free(p);
+    }
+}
+
+void free_ptr_1d(void *p)
+{
+    if (p != NULL)
+    {
+        free(p);
+    }
+}
 
 void clear()
 {
+//    free_ptr_2d((void **) cmd_queues, platforms_count);
+//    free_ptr_2d((void **) contexts, platforms_count);
+//    free_ptr_2d((void **) devices, platforms_count);
+//    free_ptr_1d(devices_on_platform);
+//    free_ptr_1d(platforms);
+
     int i;
-    for(i = 0; i < platforms_count; i++)
+
+    if (cmd_queues != NULL)
     {
-        free(devices[i]);
+        for (i = 0; i < platforms_count; i++)
+        {
+            if (cmd_queues[i] != NULL)
+            {
+                free(cmd_queues[i]);
+            }
+        }
+
+        free(cmd_queues);
     }
 
-    free(devices);
-    free(devices_on_platform);
+    if (contexts != NULL)
+    {
+        for (i = 0; i < platforms_count; i++)
+        {
+            if (contexts[i] != NULL)
+            {
+                free(contexts[i]);
+            }
+        }
+
+        free(contexts);
+    }
+
+    if (devices != NULL)
+    {
+        for (i = 0; i < platforms_count; i++)
+        {
+            if (devices[i] != NULL)
+            {
+                free(devices[i]);
+            }
+        }
+
+        free(devices);
+    }
+
+    if (devices_on_platform != NULL)
+    {
+        free(devices_on_platform);
+    }
 
     if (platforms != NULL)
     {
@@ -48,66 +117,82 @@ void clear()
 
 int init()
 {
-    int i, j;
+    int i, j, ret = 0;
 
 #ifdef DEBUG
     printf("init\n");
 #endif
-    clGetPlatformIDs(0, NULL, &platforms_count);
-#ifdef DEBUG
-    printf("platforms: %d\n", platforms_count);
-#endif
-    platforms = malloc(sizeof(*platforms) * platforms_count);
-    if (clGetPlatformIDs(platforms_count, platforms, NULL) != CL_SUCCESS)
+    if (clGetPlatformIDs(0, NULL, &platforms_count) == CL_SUCCESS)
     {
 #ifdef DEBUG
-        printf("clGetPlatformIDs [ ERROR ]\n");
+        printf("platforms: %d\n", platforms_count);
 #endif
-        // !!! необходимо освободить выделенную память !!!
-        return 1;
-    }
-
-    devices_on_platform = malloc(sizeof(*devices_on_platform) * platforms_count);
-
-    devices = malloc(sizeof(*devices) * platforms_count);
-    contexts = malloc(sizeof(*contexts) * platforms_count);
-    cmd_queues = malloc(sizeof(*cmd_queues) * platforms_count);
-
-    for (i = 0; i < platforms_count; i++)
-    {
-        clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &devices_on_platform[i]);
-#ifdef DEBUG
-        printf("platform: %d\t devices: %d\n", i, devices_on_platform[i]);
-#endif
-        contexts[i] = malloc(sizeof(**contexts) * devices_on_platform[i]);
-        devices[i] = malloc(sizeof(**devices) * devices_on_platform[i]);
-        cmd_queues[i] = malloc(sizeof(**cmd_queues) * devices_on_platform[i]);
-
-        if (clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, devices_on_platform[i], devices[i], NULL) == CL_SUCCESS)
+        platforms = malloc(sizeof(*platforms) * platforms_count);
+        if (clGetPlatformIDs(platforms_count, platforms, NULL) == CL_SUCCESS)
         {
-            cl_context_properties properties[3] = {
-                CL_CONTEXT_PLATFORM,
-                (cl_context_properties) platforms[i],
-                0
-            };
+            devices_on_platform = malloc(sizeof(*devices_on_platform) * platforms_count);
 
-            // Создаем очереди
-            for (j = 0; j < devices_on_platform[i]; j++)
+            devices = malloc(sizeof(*devices) * platforms_count);
+            contexts = malloc(sizeof(*contexts) * platforms_count);
+            cmd_queues = malloc(sizeof(*cmd_queues) * platforms_count);
+
+            for (i = 0; i < platforms_count; i++)
             {
-#ifdef DEBUG
-                printf("platform: %d\t cmd queue: %d\n", i, j);
-#endif
-                cl_int err;
-                contexts[i][j] = clCreateContext(properties, devices_on_platform[i], devices[i], NULL, NULL, &err);
-                cmd_queues[i][j] = clCreateCommandQueue(contexts[i][j], devices[i][j], (cl_command_queue_properties) 0, &err);
+                if (clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &devices_on_platform[i]) == CL_SUCCESS)
+                {
+    #ifdef DEBUG
+                    printf("platform: %d\t devices: %d\n", i, devices_on_platform[i]);
+    #endif
+                    devices[i] = malloc(sizeof(**devices) * devices_on_platform[i]);
+                    contexts[i] = malloc(sizeof(**contexts) * devices_on_platform[i]);
+                    cmd_queues[i] = malloc(sizeof(**cmd_queues) * devices_on_platform[i]);
+
+                    if (clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, devices_on_platform[i], devices[i], NULL) == CL_SUCCESS)
+                    {
+                        cl_context_properties properties[3] = {
+                            CL_CONTEXT_PLATFORM,
+                            (cl_context_properties) platforms[i],
+                            0
+                        };
+
+                        // Создаем очереди
+                        for (j = 0; j < devices_on_platform[i]; j++)
+                        {
+    #ifdef DEBUG
+                            printf("platform: %d\t cmd queue: %d\n", i, j);
+    #endif
+                            cl_int err;
+                            contexts[i][j] = clCreateContext(properties, devices_on_platform[i], devices[i], NULL, NULL, &err);
+                            cmd_queues[i][j] = clCreateCommandQueue(contexts[i][j], devices[i][j], (cl_command_queue_properties) 0, &err);
+                        }
+                    }
+                    else
+                    {
+                        // !!! необходимо освободить выделенную память !!!
+                        ret = 4;
+                    }
+                }
+                else
+                {
+                    ret = 3;
+                }
             }
         }
         else
         {
+#ifdef DEBUG
+            printf("clGetPlatformIDs [ ERROR ]\n");
+#endif
             // !!! необходимо освободить выделенную память !!!
-            return 3;
+            ret = 2;
         }
     }
+    else
+    {
+        ret = 1;
+    }
+
+
 
 
 
@@ -164,7 +249,7 @@ int init()
 //        ret |= 0x01;
 //    }
 
-    return 0;
+    return ret;
 }
 
 int avg(float *in, unsigned long int len)
@@ -193,6 +278,7 @@ void cpu_test()
 int main()
 {
     init();
+    clear();
 
     struct timespec start, stop;
     long dsec, dnsec;

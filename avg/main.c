@@ -55,62 +55,11 @@ void free_ptr_1d(void *p)
 
 void clear()
 {
-//    free_ptr_2d((void **) cmd_queues, platforms_count);
-//    free_ptr_2d((void **) contexts, platforms_count);
-//    free_ptr_2d((void **) devices, platforms_count);
-//    free_ptr_1d(devices_on_platform);
-//    free_ptr_1d(platforms);
-
-    int i;
-
-    if (cmd_queues != NULL)
-    {
-        for (i = 0; i < platforms_count; i++)
-        {
-            if (cmd_queues[i] != NULL)
-            {
-                free(cmd_queues[i]);
-            }
-        }
-
-        free(cmd_queues);
-    }
-
-    if (contexts != NULL)
-    {
-        for (i = 0; i < platforms_count; i++)
-        {
-            if (contexts[i] != NULL)
-            {
-                free(contexts[i]);
-            }
-        }
-
-        free(contexts);
-    }
-
-    if (devices != NULL)
-    {
-        for (i = 0; i < platforms_count; i++)
-        {
-            if (devices[i] != NULL)
-            {
-                free(devices[i]);
-            }
-        }
-
-        free(devices);
-    }
-
-    if (devices_on_platform != NULL)
-    {
-        free(devices_on_platform);
-    }
-
-    if (platforms != NULL)
-    {
-        free(platforms);
-    }
+    free_ptr_2d((void **) cmd_queues, platforms_count);
+    free_ptr_2d((void **) contexts, platforms_count);
+    free_ptr_2d((void **) devices, platforms_count);
+    free_ptr_1d(devices_on_platform);
+    free_ptr_1d(platforms);
 }
 
 
@@ -277,9 +226,6 @@ void cpu_test()
 
 int main()
 {
-    init();
-    clear();
-
     struct timespec start, stop;
     long dsec, dnsec;
 
@@ -296,9 +242,7 @@ int main()
     int len;
     if (kernel_len(KERNEL_SRC, &len) == 0)
     {
-        /*
-        printf("%s len: %d byte\n", KERNEL_SRC, len);
-        */
+//        printf("%s len: %d byte\n", KERNEL_SRC, len);
     }
     else
     {
@@ -311,11 +255,9 @@ int main()
     kernel_src[0][len] = 0;
     if (kernel_read(KERNEL_SRC, len, kernel_src[0]) == 0)
     {
-        /*
-        printf("--BEGIN--\n");
-        printf("%s", kernel_src[0]);
-        printf("--END--\n");
-        */
+//        printf("--BEGIN--\n");
+//        printf("%s", kernel_src[0]);
+//        printf("--END--\n");
     }
     else
     {
@@ -354,7 +296,7 @@ int main()
     cl_int      err;
     cl_context  context = clCreateContext(properties, 1, &device_id[0], NULL, NULL, &err);
 
-    cl_command_queue command_queue = clCreateCommandQueue(context, device_id[0], /*(cl_command_queue_properties) 0*/ CL_QUEUE_PROFILING_ENABLE, &err);
+    cl_command_queue command_queue = clCreateCommandQueue(context, device_id[0], CL_QUEUE_PROFILING_ENABLE, &err);
 
 
 
@@ -397,10 +339,8 @@ int main()
     size_t div = (DATA_SIZE - 1) / V_LEN;
     size_t global_work_size = ((DATA_SIZE - 1) % V_LEN == 0) ? div : div + 1;
 
-    /*
-     * Необходим алгоритм вычисления размера локальной группы.
-     * Он должен быть кратен 64.
-     */
+//    Необходим алгоритм вычисления размера локальной группы.
+//    Он должен быть кратен 64.
     size_t local_work_size = 1;
 
     clock_gettime(CLOCK_ID, &start);
@@ -432,14 +372,12 @@ int main()
 
     printf("global work size: %d\tlocal work size: %d\n", global_work_size, local_work_size);
 
-    /*
-    printf("output: ");
-    for(i = 0; i < DATA_SIZE - 1; i++)
-    {
-        printf("%f ", out_data[i]);
-    }
-    printf("\n");
-    */
+//    printf("output: ");
+//    for(i = 0; i < DATA_SIZE - 1; i++)
+//    {
+//        printf("%f ", out_data[i]);
+//    }
+//    printf("\n");
 
     clReleaseMemObject(output);
     clReleaseMemObject(input_right);

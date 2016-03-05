@@ -38,10 +38,12 @@ void free_ptr_2d(void **p, unsigned long int len_2d)
             if (p[i] != NULL)
             {
                 free(p[i]);
+                p[i] = NULL;
             }
         }
 
         free(p);
+        p = NULL;
     }
 }
 
@@ -50,6 +52,7 @@ void free_ptr_1d(void *p)
     if (p != NULL)
     {
         free(p);
+        p = NULL;
     }
 }
 
@@ -62,7 +65,7 @@ void clear()
     free_ptr_1d(platforms);
 }
 
-int init()
+int init(cl_device_type dev_type)
 {
     int ret = 0;
 
@@ -86,7 +89,7 @@ int init()
             int i;
             for (i = 0; i < platforms_count; i++)
             {
-                if (clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &devices_on_platform[i]) == CL_SUCCESS)
+                if (clGetDeviceIDs(platforms[i], dev_type, 0, NULL, &devices_on_platform[i]) == CL_SUCCESS)
                 {
 #ifdef DEBUG
                     printf("platform: %d\t devices: %d\n", i, devices_on_platform[i]);
@@ -95,7 +98,7 @@ int init()
                     contexts[i] = malloc(sizeof(**contexts) * devices_on_platform[i]);
                     cmd_queues[i] = malloc(sizeof(**cmd_queues) * devices_on_platform[i]);
 
-                    if (clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, devices_on_platform[i], devices[i], NULL) == CL_SUCCESS)
+                    if (clGetDeviceIDs(platforms[i], dev_type, devices_on_platform[i], devices[i], NULL) == CL_SUCCESS)
                     {
                         cl_context_properties properties[3] = {
                             CL_CONTEXT_PLATFORM,
@@ -109,19 +112,22 @@ int init()
 #ifdef DEBUG
                             printf("platform: %d\t cmd queue: %d\n", i, j);
 #endif
-                            cl_int err;
-                            contexts[i][j] = clCreateContext(properties, devices_on_platform[i], devices[i], NULL, NULL, &err);
-//                            if (err)
-//                            {
-//                                  ret = 6
-//                                break;
-//                            }
-                            cmd_queues[i][j] = clCreateCommandQueue(contexts[i][j], devices[i][j], (cl_command_queue_properties) 0, &err);
-                            //                            if (err)
-                            //                            {
-                            //                                  ret = 5
-                            //                                break;
-                            //                            }
+                            cl_int *err = NULL;
+                            contexts[i][j] = clCreateContext(properties, devices_on_platform[i], &devices[i][j], NULL, NULL, err);
+                            if (err != NULL)
+                            {
+                                cmd_queues[i][j] = clCreateCommandQueue(contexts[i][j], devices[i][j], (cl_command_queue_properties) 0, err);
+                                if (err == NULL)
+                                {
+                                    ret = 6;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                ret = 5;
+                                break;
+                            }
                         }
                     }
                     else
@@ -153,63 +159,6 @@ int init()
         clear();
     }
 
-
-
-
-
-//    cl_platform_id  platforms[MAX_PLATFORMS];
-
-//    if (clGetPlatformIDs(MAX_PLATFORMS, platforms, &num_of_platforms) == CL_SUCCESS)
-//    {
-
-//        for (i = 0; i < num_of_platforms; i++)
-//        {
-
-//        }
-
-
-//        cl_device_id    device_id[MAX_DEVICES];
-//        cl_uint         num_of_devices = 0;
-//        if (clGetDeviceIDs(platform[i], CL_DEVICE_TYPE_GPU, MAX_DEVICES, device_id, &num_of_devices) == CL_SUCCESS)
-//        {
-
-
-
-//        }
-//        else
-//        {
-//            printf("clGetDeviceIDs [ ERROR ]\n");
-//            return 1;
-//        }
-//    }
-//    else
-//    {
-//        printf("clGetPlatformIDs [ ERROR ]\n");
-//        ret |= 0x04;
-//    }
-
-
-
-//    int len = 0;
-//    if (kernel_len(KERNEL_SRC, &len) == 0)
-//    {
-//        char **kernel_src = NULL;
-//        kernel_src = malloc(sizeof(char *) * KERNELS_COUNT);
-//        kernel_src[0] = malloc(sizeof(char) * (len + 1));
-//        kernel_src[0][len] = 0;
-//        if (kernel_read(KERNEL_SRC, len, kernel_src[0]) == 0)
-//        {
-//        }
-//        else
-//        {
-//            ret |= 0x02;
-//        }
-//    }
-//    else
-//    {
-//        ret |= 0x01;
-//    }
-
     return ret;
 }
 
@@ -236,8 +185,205 @@ void cpu_test()
     */
 }
 
+#define MAX_STR_ERR_LEN     255
+void err_to_str(cl_uint err, char *str)
+{
+    switch (err)
+    {
+    case CL_SUCCESS:
+        str = "CL_SUCCESS";
+        break;
+    case CL_DEVICE_NOT_FOUND:
+        str = "CL_DEVICE_NOT_FOUND";
+        break;
+    case CL_DEVICE_NOT_AVAILABLE:
+        str = "CL_DEVICE_NOT_AVAILABLE";
+        break;
+    case CL_COMPILER_NOT_AVAILABLE:
+        str = "CL_COMPILER_NOT_AVAILABLE";
+        break;
+    case CL_MEM_OBJECT_ALLOCATION_FAILURE:
+        str = "CL_MEM_OBJECT_ALLOCATION_FAILURE";
+        break;
+    case CL_OUT_OF_RESOURCES:
+        str = "CL_OUT_OF_RESOURCES";
+        break;
+    case CL_OUT_OF_HOST_MEMORY:
+        str = "CL_OUT_OF_HOST_MEMORY";
+        break;
+    case CL_PROFILING_INFO_NOT_AVAILABLE:
+        str = "CL_PROFILING_INFO_NOT_AVAILABLE";
+        break;
+    case CL_MEM_COPY_OVERLAP:
+        str = "CL_MEM_COPY_OVERLAP";
+        break;
+    case CL_IMAGE_FORMAT_MISMATCH:
+        str = "CL_IMAGE_FORMAT_MISMATCH";
+        break;
+    case CL_IMAGE_FORMAT_NOT_SUPPORTED:
+        str = "CL_IMAGE_FORMAT_NOT_SUPPORTED";
+        break;
+    case CL_BUILD_PROGRAM_FAILURE:
+        str = "CL_BUILD_PROGRAM_FAILURE";
+        break;
+    case CL_MAP_FAILURE:
+        str = "CL_MAP_FAILURE";
+        break;
+    case CL_MISALIGNED_SUB_BUFFER_OFFSET:
+        str = "CL_MISALIGNED_SUB_BUFFER_OFFSET";
+        break;
+    case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST:
+        str = "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST";
+        break;
+    case CL_COMPILE_PROGRAM_FAILURE:
+        str = "CL_COMPILE_PROGRAM_FAILURE";
+        break;
+    case CL_LINKER_NOT_AVAILABLE:
+        str = "CL_LINKER_NOT_AVAILABLE";
+        break;
+    case CL_LINK_PROGRAM_FAILURE:
+        str = "CL_LINK_PROGRAM_FAILURE";
+        break;
+    case CL_DEVICE_PARTITION_FAILED:
+        str = "CL_DEVICE_PARTITION_FAILED";
+        break;
+    case CL_KERNEL_ARG_INFO_NOT_AVAILABLE:
+        str = "CL_KERNEL_ARG_INFO_NOT_AVAILABLE";
+        break;
+    case CL_INVALID_VALUE:
+        str = "CL_INVALID_VALUE";
+        break;
+    case CL_INVALID_DEVICE_TYPE:
+        str = "CL_INVALID_DEVICE_TYPE";
+        break;
+    case CL_INVALID_PLATFORM:
+        str = "CL_INVALID_PLATFORM";
+        break;
+    case CL_INVALID_DEVICE:
+        str = "CL_INVALID_DEVICE";
+        break;
+    case CL_INVALID_CONTEXT:
+        str = "CL_INVALID_CONTEXT";
+        break;
+    case CL_INVALID_QUEUE_PROPERTIES:
+        str = "CL_INVALID_QUEUE_PROPERTIES";
+        break;
+    case CL_INVALID_COMMAND_QUEUE:
+        str = "CL_INVALID_COMMAND_QUEUE";
+        break;
+    case CL_INVALID_HOST_PTR:
+        str = "CL_INVALID_HOST_PTR";
+        break;
+    case CL_INVALID_MEM_OBJECT:
+        str = "CL_INVALID_MEM_OBJECT";
+        break;
+    case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR:
+        str = "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR";
+        break;
+    case CL_INVALID_IMAGE_SIZE:
+        str = "CL_INVALID_IMAGE_SIZE";
+        break;
+    case CL_INVALID_SAMPLER:
+        str = "CL_INVALID_SAMPLER";
+        break;
+    case CL_INVALID_BINARY:
+        str = "CL_INVALID_BINARY";
+        break;
+    case CL_INVALID_BUILD_OPTIONS:
+        str = "CL_INVALID_BUILD_OPTIONS";
+        break;
+    case CL_INVALID_PROGRAM:
+        str = "CL_INVALID_PROGRAM";
+        break;
+    case CL_INVALID_PROGRAM_EXECUTABLE:
+        str = "CL_INVALID_PROGRAM_EXECUTABLE";
+        break;
+    case CL_INVALID_KERNEL_NAME:
+        str = "CL_INVALID_KERNEL_NAME";
+        break;
+    case CL_INVALID_KERNEL_DEFINITION:
+        str = "CL_INVALID_KERNEL_DEFINITION";
+        break;
+    case CL_INVALID_KERNEL:
+        str = "CL_INVALID_KERNEL";
+        break;
+    case CL_INVALID_ARG_INDEX:
+        str = "CL_INVALID_ARG_INDEX";
+        break;
+    case CL_INVALID_ARG_VALUE:
+        str = "CL_INVALID_ARG_VALUE";
+        break;
+    case CL_INVALID_ARG_SIZE:
+        str = "CL_INVALID_ARG_SIZE";
+        break;
+    case CL_INVALID_KERNEL_ARGS:
+        str = "CL_INVALID_KERNEL_ARGS";
+        break;
+    case CL_INVALID_WORK_DIMENSION:
+        str = "CL_INVALID_WORK_DIMENSION";
+        break;
+    case CL_INVALID_WORK_GROUP_SIZE:
+        str = "CL_INVALID_WORK_GROUP_SIZE";
+        break;
+    case CL_INVALID_WORK_ITEM_SIZE:
+        str = "CL_INVALID_WORK_ITEM_SIZE";
+        break;
+    case CL_INVALID_GLOBAL_OFFSET:
+        str = "CL_INVALID_GLOBAL_OFFSET";
+        break;
+    case CL_INVALID_EVENT_WAIT_LIST:
+        str = "CL_INVALID_EVENT_WAIT_LIST";
+        break;
+    case CL_INVALID_EVENT:
+        str = "CL_INVALID_EVENT";
+        break;
+    case CL_INVALID_OPERATION:
+        str = "CL_INVALID_OPERATION";
+        break;
+    case CL_INVALID_GL_OBJECT:
+        str = "CL_INVALID_GL_OBJECT";
+        break;
+    case CL_INVALID_BUFFER_SIZE:
+        str = "CL_INVALID_BUFFER_SIZE";
+        break;
+    case CL_INVALID_MIP_LEVEL:
+        str = "CL_INVALID_MIP_LEVEL";
+        break;
+    case CL_INVALID_GLOBAL_WORK_SIZE:
+        str = "CL_INVALID_GLOBAL_WORK_SIZE";
+        break;
+    case CL_INVALID_PROPERTY:
+        str = "CL_INVALID_PROPERTY";
+        break;
+    case CL_INVALID_IMAGE_DESCRIPTOR:
+        str = "CL_INVALID_IMAGE_DESCRIPTOR";
+        break;
+    case CL_INVALID_COMPILER_OPTIONS:
+        str = "CL_INVALID_COMPILER_OPTIONS";
+        break;
+    case CL_INVALID_LINKER_OPTIONS:
+        str = "CL_INVALID_LINKER_OPTIONS";
+        break;
+    case CL_INVALID_DEVICE_PARTITION_COUNT:
+        str = "CL_INVALID_DEVICE_PARTITION_COUNT";
+        break;
+    case CL_INVALID_PIPE_SIZE:
+        str = "CL_INVALID_PIPE_SIZE";
+        break;
+    case CL_INVALID_DEVICE_QUEUE:
+        str = "CL_INVALID_DEVICE_QUEUE";
+        break;
+    default:
+        str = "unknown";
+        break;
+    }
+}
+
 int main()
 {
+#ifdef DEBUG
+    char err_str[MAX_STR_ERR_LEN];
+#endif
     struct timespec start, stop;
     long dsec, dnsec;
 
@@ -249,34 +395,6 @@ int main()
     {
         in_data[i] = i;
     }
-
-
-    int len;
-    if (kernel_len(KERNEL_SRC, &len) == 0)
-    {
-//        printf("%s len: %d byte\n", KERNEL_SRC, len);
-    }
-    else
-    {
-        return 1;
-    }
-
-    char ** kernel_src = NULL;
-    kernel_src = malloc(sizeof(char *) * KERNELS_COUNT);
-    kernel_src[0] = malloc(sizeof(char) * (len + 1));
-    kernel_src[0][len] = 0;
-    if (kernel_read(KERNEL_SRC, len, kernel_src[0]) == 0)
-    {
-//        printf("--BEGIN--\n");
-//        printf("%s", kernel_src[0]);
-//        printf("--END--\n");
-    }
-    else
-    {
-        return 1;
-    }
-
-
 
     cl_platform_id  platform_id;
     cl_uint         num_of_platforms = 0;
@@ -313,9 +431,30 @@ int main()
 
 
 
+    int len;
+    if (kernel_len(KERNEL_SRC, &len) == 0)
+    {
+//        printf("%s len: %d byte\n", KERNEL_SRC, len);
+    }
+    else
+    {
+        return 1;
+    }
 
-
-
+    char ** kernel_src = NULL;
+    kernel_src = malloc(sizeof(char *) * KERNELS_COUNT);
+    kernel_src[0] = malloc(sizeof(char) * (len + 1));
+    kernel_src[0][len] = 0;
+    if (kernel_read(KERNEL_SRC, len, kernel_src[0]) == 0)
+    {
+//        printf("--BEGIN--\n");
+//        printf("%s", kernel_src[0]);
+//        printf("--END--\n");
+    }
+    else
+    {
+        return 1;
+    }
 
     cl_program program = clCreateProgramWithSource(context, 1, (const char **) kernel_src, NULL, &err);
 
@@ -360,7 +499,13 @@ int main()
     cl_event myEvent;
 
 
-    clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
+    if (clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent) != CL_SUCCESS)
+    {
+#ifdef DEBUG
+        printf("clEnqueueNDRangeKernel [ ERROR ]\n");
+#endif
+    }
+
     clFinish(command_queue);
 
     clock_gettime(CLOCK_ID, &stop);
@@ -370,10 +515,40 @@ int main()
 
 
     cl_ulong start_time, end_time, queued_time, submit_time;
-    clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &queued_time, NULL);
-    clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &submit_time, NULL);
-    clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL);
-    clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL);
+//    if (clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &queued_time, NULL) != CL_SUCCESS)
+//    {
+//#ifdef DEBUG
+//        printf("clGetEventProfilingInfo [ ERROR ]\n");
+//#endif
+//    }
+
+    err = clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &queued_time, NULL);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clGetEventProfilingInfo [ %s ]\n", err_str);
+#endif
+
+    if (clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &submit_time, NULL) != CL_SUCCESS)
+    {
+#ifdef DEBUG
+        printf("clGetEventProfilingInfo [ ERROR ]\n");
+#endif
+    }
+
+    if (clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL) != CL_SUCCESS)
+    {
+#ifdef DEBUG
+        printf("clGetEventProfilingInfo [ ERROR ]\n");
+#endif
+    }
+
+    if (clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL) != CL_SUCCESS)
+    {
+#ifdef DEBUG
+        printf("clGetEventProfilingInfo [ ERROR ]\n");
+#endif
+    }
+
     //cl_ulong kernelExecTimeNs = end_time - start_time;
     printf("queued time: %lld nsec\n", queued_time);
     printf("submit time: %lld nsec\n", submit_time);

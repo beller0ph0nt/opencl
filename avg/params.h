@@ -5,5 +5,4 @@
 #define FLOAT(x)        XFLOAT(x)
 #define XFLOAT(x)       float ## x
 
-
 #endif // __PARAMS_H

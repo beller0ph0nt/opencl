@@ -9,9 +9,9 @@
 #include "kernel.h"
 #include "params.h"
 
-#define CLOCK_ID        CLOCK_PROCESS_CPUTIME_ID    // CLOCK_REALTIME
+#define CLOCK_ID        CLOCK_REALTIME  // CLOCK_PROCESS_CPUTIME_ID    //
 #define KERNELS_COUNT   1
-#define DATA_SIZE       1000000
+#define DATA_SIZE       16384
 #define KERNEL_SRC      "average.cl"
 #define BUILD_OPTIONS   "-I ./"
 
@@ -191,192 +191,194 @@ void err_to_str(cl_uint err, char *str)
     switch (err)
     {
     case CL_SUCCESS:
-        str = "CL_SUCCESS";
+        strcpy(str, "CL_SUCCESS");
         break;
     case CL_DEVICE_NOT_FOUND:
-        str = "CL_DEVICE_NOT_FOUND";
+        strcpy(str, "CL_DEVICE_NOT_FOUND");
         break;
     case CL_DEVICE_NOT_AVAILABLE:
-        str = "CL_DEVICE_NOT_AVAILABLE";
+        strcpy(str, "CL_DEVICE_NOT_AVAILABLE");
         break;
     case CL_COMPILER_NOT_AVAILABLE:
-        str = "CL_COMPILER_NOT_AVAILABLE";
+        strcpy(str, "CL_COMPILER_NOT_AVAILABLE");
         break;
     case CL_MEM_OBJECT_ALLOCATION_FAILURE:
-        str = "CL_MEM_OBJECT_ALLOCATION_FAILURE";
+        strcpy(str, "CL_MEM_OBJECT_ALLOCATION_FAILURE");
         break;
     case CL_OUT_OF_RESOURCES:
-        str = "CL_OUT_OF_RESOURCES";
+        strcpy(str, "CL_OUT_OF_RESOURCES");
         break;
     case CL_OUT_OF_HOST_MEMORY:
-        str = "CL_OUT_OF_HOST_MEMORY";
+        strcpy(str, "CL_OUT_OF_HOST_MEMORY");
         break;
     case CL_PROFILING_INFO_NOT_AVAILABLE:
-        str = "CL_PROFILING_INFO_NOT_AVAILABLE";
+        strcpy(str, "CL_PROFILING_INFO_NOT_AVAILABLE");
         break;
     case CL_MEM_COPY_OVERLAP:
-        str = "CL_MEM_COPY_OVERLAP";
+        strcpy(str, "CL_MEM_COPY_OVERLAP");
         break;
     case CL_IMAGE_FORMAT_MISMATCH:
-        str = "CL_IMAGE_FORMAT_MISMATCH";
+        strcpy(str, "CL_IMAGE_FORMAT_MISMATCH");
         break;
     case CL_IMAGE_FORMAT_NOT_SUPPORTED:
-        str = "CL_IMAGE_FORMAT_NOT_SUPPORTED";
+        strcpy(str, "CL_IMAGE_FORMAT_NOT_SUPPORTED");
         break;
     case CL_BUILD_PROGRAM_FAILURE:
-        str = "CL_BUILD_PROGRAM_FAILURE";
+        strcpy(str, "CL_BUILD_PROGRAM_FAILURE");
         break;
     case CL_MAP_FAILURE:
-        str = "CL_MAP_FAILURE";
+        strcpy(str, "CL_MAP_FAILURE");
         break;
     case CL_MISALIGNED_SUB_BUFFER_OFFSET:
-        str = "CL_MISALIGNED_SUB_BUFFER_OFFSET";
+        strcpy(str, "CL_MISALIGNED_SUB_BUFFER_OFFSET");
         break;
     case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST:
-        str = "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST";
+        strcpy(str, "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST");
         break;
     case CL_COMPILE_PROGRAM_FAILURE:
-        str = "CL_COMPILE_PROGRAM_FAILURE";
+        strcpy(str, "CL_COMPILE_PROGRAM_FAILURE");
         break;
     case CL_LINKER_NOT_AVAILABLE:
-        str = "CL_LINKER_NOT_AVAILABLE";
+        strcpy(str, "CL_LINKER_NOT_AVAILABLE");
         break;
     case CL_LINK_PROGRAM_FAILURE:
-        str = "CL_LINK_PROGRAM_FAILURE";
+        strcpy(str, "CL_LINK_PROGRAM_FAILURE");
         break;
     case CL_DEVICE_PARTITION_FAILED:
-        str = "CL_DEVICE_PARTITION_FAILED";
+        strcpy(str, "CL_DEVICE_PARTITION_FAILED");
         break;
     case CL_KERNEL_ARG_INFO_NOT_AVAILABLE:
-        str = "CL_KERNEL_ARG_INFO_NOT_AVAILABLE";
+        strcpy(str, "CL_KERNEL_ARG_INFO_NOT_AVAILABLE");
         break;
     case CL_INVALID_VALUE:
-        str = "CL_INVALID_VALUE";
+        strcpy(str, "CL_INVALID_VALUE");
         break;
     case CL_INVALID_DEVICE_TYPE:
-        str = "CL_INVALID_DEVICE_TYPE";
+        strcpy(str, "CL_INVALID_DEVICE_TYPE");
         break;
     case CL_INVALID_PLATFORM:
-        str = "CL_INVALID_PLATFORM";
+        strcpy(str, "CL_INVALID_PLATFORM");
         break;
     case CL_INVALID_DEVICE:
-        str = "CL_INVALID_DEVICE";
+        strcpy(str, "CL_INVALID_DEVICE");
         break;
     case CL_INVALID_CONTEXT:
-        str = "CL_INVALID_CONTEXT";
+        strcpy(str, "CL_INVALID_CONTEXT");
         break;
     case CL_INVALID_QUEUE_PROPERTIES:
-        str = "CL_INVALID_QUEUE_PROPERTIES";
+        strcpy(str, "CL_INVALID_QUEUE_PROPERTIES");
         break;
     case CL_INVALID_COMMAND_QUEUE:
-        str = "CL_INVALID_COMMAND_QUEUE";
+        strcpy(str, "CL_INVALID_COMMAND_QUEUE");
         break;
     case CL_INVALID_HOST_PTR:
-        str = "CL_INVALID_HOST_PTR";
+        strcpy(str, "CL_INVALID_HOST_PTR");
         break;
     case CL_INVALID_MEM_OBJECT:
-        str = "CL_INVALID_MEM_OBJECT";
+        strcpy(str, "CL_INVALID_MEM_OBJECT");
         break;
     case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR:
-        str = "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR";
+        strcpy(str, "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR");
         break;
     case CL_INVALID_IMAGE_SIZE:
-        str = "CL_INVALID_IMAGE_SIZE";
+        strcpy(str, "CL_INVALID_IMAGE_SIZE");
         break;
     case CL_INVALID_SAMPLER:
-        str = "CL_INVALID_SAMPLER";
+        strcpy(str, "CL_INVALID_SAMPLER");
         break;
     case CL_INVALID_BINARY:
-        str = "CL_INVALID_BINARY";
+        strcpy(str, "CL_INVALID_BINARY");
         break;
     case CL_INVALID_BUILD_OPTIONS:
-        str = "CL_INVALID_BUILD_OPTIONS";
+        strcpy(str, "CL_INVALID_BUILD_OPTIONS");
         break;
     case CL_INVALID_PROGRAM:
-        str = "CL_INVALID_PROGRAM";
+        strcpy(str, "CL_INVALID_PROGRAM");
         break;
     case CL_INVALID_PROGRAM_EXECUTABLE:
-        str = "CL_INVALID_PROGRAM_EXECUTABLE";
+        strcpy(str, "CL_INVALID_PROGRAM_EXECUTABLE");
         break;
     case CL_INVALID_KERNEL_NAME:
-        str = "CL_INVALID_KERNEL_NAME";
+        strcpy(str, "CL_INVALID_KERNEL_NAME");
         break;
     case CL_INVALID_KERNEL_DEFINITION:
-        str = "CL_INVALID_KERNEL_DEFINITION";
+        strcpy(str, "CL_INVALID_KERNEL_DEFINITION");
         break;
     case CL_INVALID_KERNEL:
-        str = "CL_INVALID_KERNEL";
+        strcpy(str, "CL_INVALID_KERNEL");
         break;
     case CL_INVALID_ARG_INDEX:
-        str = "CL_INVALID_ARG_INDEX";
+        strcpy(str, "CL_INVALID_ARG_INDEX");
         break;
     case CL_INVALID_ARG_VALUE:
-        str = "CL_INVALID_ARG_VALUE";
+        strcpy(str, "CL_INVALID_ARG_VALUE");
         break;
     case CL_INVALID_ARG_SIZE:
-        str = "CL_INVALID_ARG_SIZE";
+        strcpy(str, "CL_INVALID_ARG_SIZE");
         break;
     case CL_INVALID_KERNEL_ARGS:
-        str = "CL_INVALID_KERNEL_ARGS";
+        strcpy(str, "CL_INVALID_KERNEL_ARGS");
         break;
     case CL_INVALID_WORK_DIMENSION:
-        str = "CL_INVALID_WORK_DIMENSION";
+        strcpy(str, "CL_INVALID_WORK_DIMENSION");
         break;
     case CL_INVALID_WORK_GROUP_SIZE:
-        str = "CL_INVALID_WORK_GROUP_SIZE";
+        strcpy(str, "CL_INVALID_WORK_GROUP_SIZE");
         break;
     case CL_INVALID_WORK_ITEM_SIZE:
-        str = "CL_INVALID_WORK_ITEM_SIZE";
+        strcpy(str, "CL_INVALID_WORK_ITEM_SIZE");
         break;
     case CL_INVALID_GLOBAL_OFFSET:
-        str = "CL_INVALID_GLOBAL_OFFSET";
+        strcpy(str, "CL_INVALID_GLOBAL_OFFSET");
         break;
     case CL_INVALID_EVENT_WAIT_LIST:
-        str = "CL_INVALID_EVENT_WAIT_LIST";
+        strcpy(str, "CL_INVALID_EVENT_WAIT_LIST");
         break;
     case CL_INVALID_EVENT:
-        str = "CL_INVALID_EVENT";
+        strcpy(str, "CL_INVALID_EVENT");
         break;
     case CL_INVALID_OPERATION:
-        str = "CL_INVALID_OPERATION";
+        strcpy(str, "CL_INVALID_OPERATION");
         break;
     case CL_INVALID_GL_OBJECT:
-        str = "CL_INVALID_GL_OBJECT";
+        strcpy(str, "CL_INVALID_GL_OBJECT");
         break;
     case CL_INVALID_BUFFER_SIZE:
-        str = "CL_INVALID_BUFFER_SIZE";
+        strcpy(str, "CL_INVALID_BUFFER_SIZE");
         break;
     case CL_INVALID_MIP_LEVEL:
-        str = "CL_INVALID_MIP_LEVEL";
+        strcpy(str, "CL_INVALID_MIP_LEVEL");
         break;
     case CL_INVALID_GLOBAL_WORK_SIZE:
-        str = "CL_INVALID_GLOBAL_WORK_SIZE";
+        strcpy(str, "CL_INVALID_GLOBAL_WORK_SIZE");
         break;
     case CL_INVALID_PROPERTY:
-        str = "CL_INVALID_PROPERTY";
+        strcpy(str, "CL_INVALID_PROPERTY");
         break;
     case CL_INVALID_IMAGE_DESCRIPTOR:
-        str = "CL_INVALID_IMAGE_DESCRIPTOR";
+        strcpy(str, "CL_INVALID_IMAGE_DESCRIPTOR");
         break;
     case CL_INVALID_COMPILER_OPTIONS:
-        str = "CL_INVALID_COMPILER_OPTIONS";
+        strcpy(str, "CL_INVALID_COMPILER_OPTIONS");
         break;
     case CL_INVALID_LINKER_OPTIONS:
-        str = "CL_INVALID_LINKER_OPTIONS";
+        strcpy(str, "CL_INVALID_LINKER_OPTIONS");
         break;
     case CL_INVALID_DEVICE_PARTITION_COUNT:
-        str = "CL_INVALID_DEVICE_PARTITION_COUNT";
+        strcpy(str, "CL_INVALID_DEVICE_PARTITION_COUNT");
         break;
     case CL_INVALID_PIPE_SIZE:
-        str = "CL_INVALID_PIPE_SIZE";
+        strcpy(str, "CL_INVALID_PIPE_SIZE");
         break;
     case CL_INVALID_DEVICE_QUEUE:
-        str = "CL_INVALID_DEVICE_QUEUE";
+        strcpy(str, "CL_INVALID_DEVICE_QUEUE");
         break;
     default:
-        str = "unknown";
+        strcpy(str, "unknown");
         break;
     }
+
+    //strcpy(str, text, strlen(text));
 }
 
 int main()
@@ -492,19 +494,18 @@ int main()
 
 //    Необходим алгоритм вычисления размера локальной группы.
 //    Он должен быть кратен 64.
-    size_t local_work_size = 1;
+    size_t local_work_size = 64;
 
     clock_gettime(CLOCK_ID, &start);
 
     cl_event myEvent;
 
 
-    if (clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent) != CL_SUCCESS)
-    {
+    err = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 #ifdef DEBUG
-        printf("clEnqueueNDRangeKernel [ ERROR ]\n");
+    err_to_str(err, err_str);
+    printf("clEnqueueNDRangeKernel [ %s ]\n", err_str);
 #endif
-    }
 
     clFinish(command_queue);
 
@@ -515,49 +516,51 @@ int main()
 
 
     cl_ulong start_time, end_time, queued_time, submit_time;
-//    if (clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &queued_time, NULL) != CL_SUCCESS)
-//    {
-//#ifdef DEBUG
-//        printf("clGetEventProfilingInfo [ ERROR ]\n");
-//#endif
-//    }
-
     err = clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong), &queued_time, NULL);
 #ifdef DEBUG
     err_to_str(err, err_str);
     printf("clGetEventProfilingInfo [ %s ]\n", err_str);
 #endif
 
-    if (clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &submit_time, NULL) != CL_SUCCESS)
-    {
+    err = clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &submit_time, NULL);
 #ifdef DEBUG
-        printf("clGetEventProfilingInfo [ ERROR ]\n");
+    err_to_str(err, err_str);
+    printf("clGetEventProfilingInfo [ %s ]\n", err_str);
 #endif
-    }
 
-    if (clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL) != CL_SUCCESS)
-    {
+    err = clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL);
 #ifdef DEBUG
-        printf("clGetEventProfilingInfo [ ERROR ]\n");
+    err_to_str(err, err_str);
+    printf("clGetEventProfilingInfo [ %s ]\n", err_str);
 #endif
-    }
 
-    if (clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL) != CL_SUCCESS)
-    {
+    err = clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL);
 #ifdef DEBUG
-        printf("clGetEventProfilingInfo [ ERROR ]\n");
+    err_to_str(err, err_str);
+    printf("clGetEventProfilingInfo [ %s ]\n", err_str);
 #endif
-    }
 
-    //cl_ulong kernelExecTimeNs = end_time - start_time;
-    printf("queued time: %lld nsec\n", queued_time);
-    printf("submit time: %lld nsec\n", submit_time);
-    printf("start time: %lld nsec\n", start_time);
-    printf("end time: %lld nsec\n", end_time);
+    printf("\nqueued time:\t%lld nsec\n", queued_time);
+    printf("submit time:\t%lld nsec\n", submit_time);
+    printf("start time:\t%lld nsec\n", start_time);
+    printf("end time:\t%lld nsec\n\n", end_time);
+
+    cl_ulong kernel_queued_time = submit_time - queued_time;
+    printf("kernel queued time:\t%lld nsec\n", kernel_queued_time);
+
+    cl_ulong kernel_sbmit_time = start_time - submit_time;
+    printf("kernel submit time:\t%lld nsec\n", kernel_sbmit_time);
+
+    cl_ulong kernel_exec_time = end_time - start_time;
+    printf("kernel exec time:\t%lld nsec\n", kernel_exec_time);
+
+    printf("-------------------------------------------------\n");
+    cl_ulong kernel_total_time = end_time - queued_time;
+    printf("kernel total time:\t%lld nsec\n\n", kernel_total_time);
 
     clEnqueueReadBuffer(command_queue, output, CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), out_data, 0, NULL, NULL);
 
-    printf("global work size: %d\tlocal work size: %d\n", global_work_size, local_work_size);
+    printf("global work size: %d\tlocal work size: %d\n\n", global_work_size, local_work_size);
 
 //    printf("output: ");
 //    for(i = 0; i < DATA_SIZE - 1; i++)

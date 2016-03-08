@@ -4,22 +4,32 @@
 #include <stdio.h>
 #include <CL/cl.h>
 #include <stdlib.h>
-#include <string.h>
 
+#include "err.h"
+#include "free.h"
 #include "kernel.h"
 #include "params.h"
 
 #define CLOCK_ID        CLOCK_REALTIME  // CLOCK_PROCESS_CPUTIME_ID    //
 #define KERNELS_COUNT   1
-#define DATA_SIZE       16384
+
+//#define DATA_SIZE       16384     // V_LEN * max_param_size
+#define DATA_SIZE       4000000
+
 #define KERNEL_SRC      "average.cl"
 #define BUILD_OPTIONS   "-I ./"
 
 #define MAX_PLATFORMS   100
 #define MAX_DEVICES     100
 
+struct dev_prop
+{
+    size_t  max_param_size;
+};
+
 cl_uint *devices_on_platform = NULL;
 cl_device_id **devices = NULL;
+struct dev_prop **devices_prop;
 
 cl_uint platforms_count = 0;
 cl_platform_id *platforms = NULL;
@@ -27,236 +37,25 @@ cl_platform_id *platforms = NULL;
 cl_context **contexts = NULL;
 cl_command_queue **cmd_queues = NULL;
 
+
+
 cl_kernel **avg_kernels = NULL;
-
-void free_ptr_2d(void **p, unsigned long int len_2d)
-{
-    unsigned long int i;
-
-    if (p != NULL)
-    {
-        for (i = 0; i < len_2d; i++)
-        {
-            if (p[i] != NULL)
-            {
-                free(p[i]);
-                p[i] = NULL;
-            }
-        }
-
-        free(p);
-        p = NULL;
-    }
-}
-
-void free_ptr_1d(void *p)
-{
-    if (p != NULL)
-    {
-        free(p);
-        p = NULL;
-    }
-}
-
-#define MAX_STR_ERR_LEN     255
-void err_to_str(cl_uint err, char *str)
-{
-    switch (err)
-    {
-    case CL_SUCCESS:
-        strcpy(str, "CL_SUCCESS");
-        break;
-    case CL_DEVICE_NOT_FOUND:
-        strcpy(str, "CL_DEVICE_NOT_FOUND");
-        break;
-    case CL_DEVICE_NOT_AVAILABLE:
-        strcpy(str, "CL_DEVICE_NOT_AVAILABLE");
-        break;
-    case CL_COMPILER_NOT_AVAILABLE:
-        strcpy(str, "CL_COMPILER_NOT_AVAILABLE");
-        break;
-    case CL_MEM_OBJECT_ALLOCATION_FAILURE:
-        strcpy(str, "CL_MEM_OBJECT_ALLOCATION_FAILURE");
-        break;
-    case CL_OUT_OF_RESOURCES:
-        strcpy(str, "CL_OUT_OF_RESOURCES");
-        break;
-    case CL_OUT_OF_HOST_MEMORY:
-        strcpy(str, "CL_OUT_OF_HOST_MEMORY");
-        break;
-    case CL_PROFILING_INFO_NOT_AVAILABLE:
-        strcpy(str, "CL_PROFILING_INFO_NOT_AVAILABLE");
-        break;
-    case CL_MEM_COPY_OVERLAP:
-        strcpy(str, "CL_MEM_COPY_OVERLAP");
-        break;
-    case CL_IMAGE_FORMAT_MISMATCH:
-        strcpy(str, "CL_IMAGE_FORMAT_MISMATCH");
-        break;
-    case CL_IMAGE_FORMAT_NOT_SUPPORTED:
-        strcpy(str, "CL_IMAGE_FORMAT_NOT_SUPPORTED");
-        break;
-    case CL_BUILD_PROGRAM_FAILURE:
-        strcpy(str, "CL_BUILD_PROGRAM_FAILURE");
-        break;
-    case CL_MAP_FAILURE:
-        strcpy(str, "CL_MAP_FAILURE");
-        break;
-    case CL_MISALIGNED_SUB_BUFFER_OFFSET:
-        strcpy(str, "CL_MISALIGNED_SUB_BUFFER_OFFSET");
-        break;
-    case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST:
-        strcpy(str, "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST");
-        break;
-    case CL_COMPILE_PROGRAM_FAILURE:
-        strcpy(str, "CL_COMPILE_PROGRAM_FAILURE");
-        break;
-    case CL_LINKER_NOT_AVAILABLE:
-        strcpy(str, "CL_LINKER_NOT_AVAILABLE");
-        break;
-    case CL_LINK_PROGRAM_FAILURE:
-        strcpy(str, "CL_LINK_PROGRAM_FAILURE");
-        break;
-    case CL_DEVICE_PARTITION_FAILED:
-        strcpy(str, "CL_DEVICE_PARTITION_FAILED");
-        break;
-    case CL_KERNEL_ARG_INFO_NOT_AVAILABLE:
-        strcpy(str, "CL_KERNEL_ARG_INFO_NOT_AVAILABLE");
-        break;
-    case CL_INVALID_VALUE:
-        strcpy(str, "CL_INVALID_VALUE");
-        break;
-    case CL_INVALID_DEVICE_TYPE:
-        strcpy(str, "CL_INVALID_DEVICE_TYPE");
-        break;
-    case CL_INVALID_PLATFORM:
-        strcpy(str, "CL_INVALID_PLATFORM");
-        break;
-    case CL_INVALID_DEVICE:
-        strcpy(str, "CL_INVALID_DEVICE");
-        break;
-    case CL_INVALID_CONTEXT:
-        strcpy(str, "CL_INVALID_CONTEXT");
-        break;
-    case CL_INVALID_QUEUE_PROPERTIES:
-        strcpy(str, "CL_INVALID_QUEUE_PROPERTIES");
-        break;
-    case CL_INVALID_COMMAND_QUEUE:
-        strcpy(str, "CL_INVALID_COMMAND_QUEUE");
-        break;
-    case CL_INVALID_HOST_PTR:
-        strcpy(str, "CL_INVALID_HOST_PTR");
-        break;
-    case CL_INVALID_MEM_OBJECT:
-        strcpy(str, "CL_INVALID_MEM_OBJECT");
-        break;
-    case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR:
-        strcpy(str, "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR");
-        break;
-    case CL_INVALID_IMAGE_SIZE:
-        strcpy(str, "CL_INVALID_IMAGE_SIZE");
-        break;
-    case CL_INVALID_SAMPLER:
-        strcpy(str, "CL_INVALID_SAMPLER");
-        break;
-    case CL_INVALID_BINARY:
-        strcpy(str, "CL_INVALID_BINARY");
-        break;
-    case CL_INVALID_BUILD_OPTIONS:
-        strcpy(str, "CL_INVALID_BUILD_OPTIONS");
-        break;
-    case CL_INVALID_PROGRAM:
-        strcpy(str, "CL_INVALID_PROGRAM");
-        break;
-    case CL_INVALID_PROGRAM_EXECUTABLE:
-        strcpy(str, "CL_INVALID_PROGRAM_EXECUTABLE");
-        break;
-    case CL_INVALID_KERNEL_NAME:
-        strcpy(str, "CL_INVALID_KERNEL_NAME");
-        break;
-    case CL_INVALID_KERNEL_DEFINITION:
-        strcpy(str, "CL_INVALID_KERNEL_DEFINITION");
-        break;
-    case CL_INVALID_KERNEL:
-        strcpy(str, "CL_INVALID_KERNEL");
-        break;
-    case CL_INVALID_ARG_INDEX:
-        strcpy(str, "CL_INVALID_ARG_INDEX");
-        break;
-    case CL_INVALID_ARG_VALUE:
-        strcpy(str, "CL_INVALID_ARG_VALUE");
-        break;
-    case CL_INVALID_ARG_SIZE:
-        strcpy(str, "CL_INVALID_ARG_SIZE");
-        break;
-    case CL_INVALID_KERNEL_ARGS:
-        strcpy(str, "CL_INVALID_KERNEL_ARGS");
-        break;
-    case CL_INVALID_WORK_DIMENSION:
-        strcpy(str, "CL_INVALID_WORK_DIMENSION");
-        break;
-    case CL_INVALID_WORK_GROUP_SIZE:
-        strcpy(str, "CL_INVALID_WORK_GROUP_SIZE");
-        break;
-    case CL_INVALID_WORK_ITEM_SIZE:
-        strcpy(str, "CL_INVALID_WORK_ITEM_SIZE");
-        break;
-    case CL_INVALID_GLOBAL_OFFSET:
-        strcpy(str, "CL_INVALID_GLOBAL_OFFSET");
-        break;
-    case CL_INVALID_EVENT_WAIT_LIST:
-        strcpy(str, "CL_INVALID_EVENT_WAIT_LIST");
-        break;
-    case CL_INVALID_EVENT:
-        strcpy(str, "CL_INVALID_EVENT");
-        break;
-    case CL_INVALID_OPERATION:
-        strcpy(str, "CL_INVALID_OPERATION");
-        break;
-    case CL_INVALID_GL_OBJECT:
-        strcpy(str, "CL_INVALID_GL_OBJECT");
-        break;
-    case CL_INVALID_BUFFER_SIZE:
-        strcpy(str, "CL_INVALID_BUFFER_SIZE");
-        break;
-    case CL_INVALID_MIP_LEVEL:
-        strcpy(str, "CL_INVALID_MIP_LEVEL");
-        break;
-    case CL_INVALID_GLOBAL_WORK_SIZE:
-        strcpy(str, "CL_INVALID_GLOBAL_WORK_SIZE");
-        break;
-    case CL_INVALID_PROPERTY:
-        strcpy(str, "CL_INVALID_PROPERTY");
-        break;
-    case CL_INVALID_IMAGE_DESCRIPTOR:
-        strcpy(str, "CL_INVALID_IMAGE_DESCRIPTOR");
-        break;
-    case CL_INVALID_COMPILER_OPTIONS:
-        strcpy(str, "CL_INVALID_COMPILER_OPTIONS");
-        break;
-    case CL_INVALID_LINKER_OPTIONS:
-        strcpy(str, "CL_INVALID_LINKER_OPTIONS");
-        break;
-    case CL_INVALID_DEVICE_PARTITION_COUNT:
-        strcpy(str, "CL_INVALID_DEVICE_PARTITION_COUNT");
-        break;
-    case CL_INVALID_PIPE_SIZE:
-        strcpy(str, "CL_INVALID_PIPE_SIZE");
-        break;
-    case CL_INVALID_DEVICE_QUEUE:
-        strcpy(str, "CL_INVALID_DEVICE_QUEUE");
-        break;
-    default:
-        strcpy(str, "unknown");
-        break;
-    }
-}
-
 
 void clear()
 {
+    int i, j;
+    for (i = 0; i < platforms_count; i++)
+    {
+        for (j = 0; j < devices_on_platform[i]; j++)
+        {
+            clReleaseCommandQueue(cmd_queues[i][j]);
+            clReleaseContext(contexts[i][j]);
+        }
+    }
+
     free_ptr_2d((void **) cmd_queues, platforms_count);
     free_ptr_2d((void **) contexts, platforms_count);
+    free_ptr_2d((void **) devices_prop, platforms_count);
     free_ptr_2d((void **) devices, platforms_count);
     free_ptr_1d(devices_on_platform);
     free_ptr_1d(platforms);
@@ -280,6 +79,7 @@ int init(cl_device_type dev_type)
             devices_on_platform = malloc(sizeof(*devices_on_platform) * platforms_count);
 
             devices = malloc(sizeof(*devices) * platforms_count);
+            devices_prop = malloc(sizeof(*devices_prop) * platforms_count);
             contexts = malloc(sizeof(*contexts) * platforms_count);
             cmd_queues = malloc(sizeof(*cmd_queues) * platforms_count);
 
@@ -293,9 +93,11 @@ int init(cl_device_type dev_type)
                     printf("platform: %d\t devices: %d\n", i, devices_on_platform[i]);
 #endif
                     devices[i] = malloc(sizeof(**devices) * devices_on_platform[i]);
+                    devices_prop[i] = malloc(sizeof(**devices_prop) * devices_on_platform[i]);
                     contexts[i] = malloc(sizeof(**contexts) * devices_on_platform[i]);
                     cmd_queues[i] = malloc(sizeof(**cmd_queues) * devices_on_platform[i]);
 
+                    cl_int *err = NULL;
 
                     if (clGetDeviceIDs(platforms[i], dev_type, devices_on_platform[i], devices[i], NULL) == CL_SUCCESS)
                     {
@@ -308,10 +110,15 @@ int init(cl_device_type dev_type)
                         int j;
                         for (j = 0; j < devices_on_platform[i]; j++)
                         {
+                            // !!! добавить обработку ошибок !!!
+                            clGetDeviceInfo(devices[i][j],
+                                           CL_DEVICE_MAX_PARAMETER_SIZE,
+                                           sizeof(devices_prop[i][j].max_param_size),
+                                           &devices_prop[i][j].max_param_size,
+                                           NULL);
 #ifdef DEBUG
                             printf("platform: %d\t cmd queue: %d\n", i, j);
 #endif
-                            cl_int *err = NULL;
                             contexts[i][j] = clCreateContext(properties, devices_on_platform[i], &devices[i][j], NULL, NULL, err);
                             if (err != NULL)
                             {
@@ -353,17 +160,19 @@ int init(cl_device_type dev_type)
         ret = 1;
     }
 
-    if (ret != 0)
-    {
-        clear();
-    }
+    // этот блок необходимо вынести во внешнюю функцию
+    // после неудачной инициализации она должна очищать память
+//    if (ret != 0)
+//    {
+//        clear();
+//    }
 
     return ret;
 }
 
 
 
-int avg_kernel_init()
+int avg_init()
 {
     int ret = 0;
 
@@ -397,6 +206,10 @@ int avg_kernel_init()
                         if (err == CL_SUCCESS)
                         {
                             avg_kernels[i][j] = clCreateKernel(program, "avg", &err);
+                            if (err != CL_SUCCESS)
+                            {
+                                ret = 1;
+                            }
                         }
                         else
                         {
@@ -422,13 +235,7 @@ int avg_kernel_init()
                         break;
                     }
                 }
-
-
-
             }
-
-
-
         }
         else
         {
@@ -445,7 +252,21 @@ int avg_kernel_init()
     return ret;
 }
 
-int avg(float *in, unsigned long int len)
+void avg_clear()
+{
+    int i, j;
+    for (i = 0; i < platforms_count; i++)
+    {
+        for (j = 0; j < devices_on_platform[i]; j++)
+        {
+            clReleaseKernel(avg_kernels[i][j]);
+        }
+    }
+
+    free_ptr_2d((void **) avg_kernels, platforms_count);
+}
+
+int avg_calc(float *in, unsigned long int len)
 {
     int ret = 0;
     return ret;
@@ -478,10 +299,14 @@ int main()
     struct timespec start, stop;
     long dsec, dnsec;
 
-    float in_data[DATA_SIZE] = { 0 };
-    float out_data[DATA_SIZE - 1] = { 0 };
+    //float in_data[DATA_SIZE] = { 0 };
+    float *in_data = malloc(sizeof(*in_data) * DATA_SIZE);
 
-    int i;
+
+    //float out_data[DATA_SIZE - 1] = { 0 };
+    float *out_data = malloc(sizeof(*out_data) * (DATA_SIZE - 1));
+
+    long int i;
     for (i = 0; i < DATA_SIZE; i++)
     {
         in_data[i] = i;
@@ -584,16 +409,48 @@ int main()
      * настройка переменных
      */
 
-    cl_mem input_left  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
-    cl_mem input_right = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
-    cl_mem output      = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * (DATA_SIZE - 1), NULL, NULL);
+    cl_mem input_left  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * (DATA_SIZE - 1), NULL, &err);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clCreateBuffer [ %s ]\n", err_str);
+#endif
+    cl_mem input_right = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * (DATA_SIZE - 1), NULL, &err);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clCreateBuffer [ %s ]\n", err_str);
+#endif
+    cl_mem output      = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * (DATA_SIZE - 1), NULL, &err);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clCreateBuffer [ %s ]\n", err_str);
+#endif
 
-    clEnqueueWriteBuffer(command_queue, input_left,  CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), in_data,     0, NULL, NULL);
-    clEnqueueWriteBuffer(command_queue, input_right, CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), in_data + 1, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(command_queue, input_left,  CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), in_data,     0, NULL, NULL);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
+#endif
+    err = clEnqueueWriteBuffer(command_queue, input_right, CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), in_data + 1, 0, NULL, NULL);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
+#endif
 
-    clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_left);
-    clSetKernelArg(kernel, 1, sizeof(cl_mem), &input_right);
-    clSetKernelArg(kernel, 2, sizeof(cl_mem), &output);
+    err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_left);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
+    err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &input_right);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
+    err = clSetKernelArg(kernel, 2, sizeof(cl_mem), &output);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
 
 
 
@@ -606,7 +463,7 @@ int main()
 
 //    Необходим алгоритм вычисления размера локальной группы.
 //    Он должен быть кратен 64.
-    size_t local_work_size = 64;
+    size_t local_work_size = 1;
     cl_event myEvent;
     clock_gettime(CLOCK_ID, &start);
 
@@ -691,11 +548,14 @@ int main()
     }
     printf("\n");
 
+    free(out_data);
+    free(in_data);
+
     clReleaseMemObject(output);
     clReleaseMemObject(input_right);
     clReleaseMemObject(input_left);
-    clReleaseKernel(kernel);
 
+    clReleaseKernel(kernel);
     clReleaseCommandQueue(command_queue);
     clReleaseContext(context);
 

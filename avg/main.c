@@ -22,14 +22,14 @@
 #define MAX_PLATFORMS   100
 #define MAX_DEVICES     100
 
-struct dev_prop
-{
-    size_t  max_param_size;
-};
+//struct dev_prop
+//{
+//    size_t  max_param_size;
+//};
 
 cl_uint *devices_on_platform = NULL;
 cl_device_id **devices = NULL;
-struct dev_prop **devices_prop;
+//struct dev_prop **devices_prop;
 
 cl_uint platforms_count = 0;
 cl_platform_id *platforms = NULL;
@@ -55,7 +55,7 @@ void clear()
 
     free_ptr_2d((void **) cmd_queues, platforms_count);
     free_ptr_2d((void **) contexts, platforms_count);
-    free_ptr_2d((void **) devices_prop, platforms_count);
+//    free_ptr_2d((void **) devices_prop, platforms_count);
     free_ptr_2d((void **) devices, platforms_count);
     free_ptr_1d(devices_on_platform);
     free_ptr_1d(platforms);
@@ -79,7 +79,7 @@ int init(cl_device_type dev_type)
             devices_on_platform = malloc(sizeof(*devices_on_platform) * platforms_count);
 
             devices = malloc(sizeof(*devices) * platforms_count);
-            devices_prop = malloc(sizeof(*devices_prop) * platforms_count);
+//            devices_prop = malloc(sizeof(*devices_prop) * platforms_count);
             contexts = malloc(sizeof(*contexts) * platforms_count);
             cmd_queues = malloc(sizeof(*cmd_queues) * platforms_count);
 
@@ -93,7 +93,7 @@ int init(cl_device_type dev_type)
                     printf("platform: %d\t devices: %d\n", i, devices_on_platform[i]);
 #endif
                     devices[i] = malloc(sizeof(**devices) * devices_on_platform[i]);
-                    devices_prop[i] = malloc(sizeof(**devices_prop) * devices_on_platform[i]);
+//                    devices_prop[i] = malloc(sizeof(**devices_prop) * devices_on_platform[i]);
                     contexts[i] = malloc(sizeof(**contexts) * devices_on_platform[i]);
                     cmd_queues[i] = malloc(sizeof(**cmd_queues) * devices_on_platform[i]);
 
@@ -111,11 +111,11 @@ int init(cl_device_type dev_type)
                         for (j = 0; j < devices_on_platform[i]; j++)
                         {
                             // !!! добавить обработку ошибок !!!
-                            clGetDeviceInfo(devices[i][j],
-                                           CL_DEVICE_MAX_PARAMETER_SIZE,
-                                           sizeof(devices_prop[i][j].max_param_size),
-                                           &devices_prop[i][j].max_param_size,
-                                           NULL);
+//                            clGetDeviceInfo(devices[i][j],
+//                                           CL_DEVICE_MAX_PARAMETER_SIZE,
+//                                           sizeof(devices_prop[i][j].max_param_size),
+//                                           &devices_prop[i][j].max_param_size,
+//                                           NULL);
 #ifdef DEBUG
                             printf("platform: %d\t cmd queue: %d\n", i, j);
 #endif
@@ -125,12 +125,18 @@ int init(cl_device_type dev_type)
                                 cmd_queues[i][j] = clCreateCommandQueue(contexts[i][j], devices[i][j], (cl_command_queue_properties) 0, err);
                                 if (err == NULL)
                                 {
+#ifdef DEBUG
+                                    printf("clCreateCommandQueue [ ERROR ]\n");
+#endif
                                     ret = 6;
                                     break;
                                 }
                             }
                             else
                             {
+#ifdef DEBUG
+                                printf("clCreateContext [ ERROR ]\n");
+#endif
                                 ret = 5;
                                 break;
                             }
@@ -138,11 +144,17 @@ int init(cl_device_type dev_type)
                     }
                     else
                     {
+#ifdef DEBUG
+                        printf("clGetDeviceIDs [ ERROR ]\n");
+#endif
                         ret = 4;
                     }
                 }
                 else
                 {
+#ifdef DEBUG
+                    printf("clGetDeviceIDs [ ERROR ]\n");
+#endif
                     ret = 3;
                 }
             }
@@ -157,11 +169,14 @@ int init(cl_device_type dev_type)
     }
     else
     {
+#ifdef DEBUG
+        printf("clGetPlatformIDs [ ERROR ]\n");
+#endif
         ret = 1;
     }
 
     // этот блок необходимо вынести во внешнюю функцию
-    // после неудачной инициализации она должна очищать память
+    // после неудачной инициализации, она должна очищать память
 //    if (ret != 0)
 //    {
 //        clear();

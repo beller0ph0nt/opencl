@@ -14,7 +14,7 @@
 #define KERNELS_COUNT   1
 
 //#define DATA_SIZE       16384     // V_LEN * max_param_size
-#define DATA_SIZE       4000000
+#define DATA_SIZE       10000000
 
 #define KERNEL_SRC      "average.cl"
 #define BUILD_OPTIONS   "-I ./"
@@ -38,8 +38,6 @@ cl_context **contexts = NULL;
 cl_command_queue **cmd_queues = NULL;
 
 
-
-cl_kernel **avg_kernels = NULL;
 
 void clear()
 {
@@ -119,10 +117,10 @@ int init(cl_device_type dev_type)
 #ifdef DEBUG
                             printf("platform: %d\t cmd queue: %d\n", i, j);
 #endif
-                            contexts[i][j] = clCreateContext(properties, devices_on_platform[i], &devices[i][j], NULL, NULL, err);
+                            contexts[i][j] = clCreateContext(properties, 1, &devices[i][j], NULL, NULL, err);
                             if (err != NULL)
                             {
-                                cmd_queues[i][j] = clCreateCommandQueue(contexts[i][j], devices[i][j], (cl_command_queue_properties) 0, err);
+                                cmd_queues[i][j] = clCreateCommandQueue(contexts[i][j], devices[i][j], CL_QUEUE_PROFILING_ENABLE, err);
                                 if (err == NULL)
                                 {
 #ifdef DEBUG
@@ -187,6 +185,11 @@ int init(cl_device_type dev_type)
 
 
 
+
+
+
+cl_kernel **avg_kernels = NULL;
+
 int avg_init()
 {
     int ret = 0;
@@ -195,8 +198,8 @@ int avg_init()
     if (kernel_len(KERNEL_SRC, &len) == 0)
     {
         char **kernel_src = NULL;
-        kernel_src = malloc(sizeof(char *) * KERNELS_COUNT);
-        kernel_src[0] = malloc(sizeof(char) * (len + 1));
+        kernel_src = malloc(sizeof(*kernel_src));
+        kernel_src[0] = malloc(sizeof(**kernel_src) * (len + 1));
         kernel_src[0][len] = 0;
         if (kernel_read(KERNEL_SRC, len, kernel_src[0]) == 0)
         {
@@ -223,12 +226,12 @@ int avg_init()
                             avg_kernels[i][j] = clCreateKernel(program, "avg", &err);
                             if (err != CL_SUCCESS)
                             {
-                                ret = 1;
+                                ret = 5;
                             }
                         }
                         else
                         {
-                            ret = 1;
+                            ret = 4;
                             printf("Error building program\n");
 
                             char buffer[4096];
@@ -242,11 +245,11 @@ int avg_init()
                     }
                     else
                     {
-                        ret = 1;
-    #ifdef DEBUG
+                        ret = 3;
+#ifdef DEBUG
                         err_to_str(err, err_str);
                         printf("clCreateProgramWithSource [ %s ]\n", err_str);
-    #endif
+#endif
                         break;
                     }
                 }
@@ -254,13 +257,19 @@ int avg_init()
         }
         else
         {
-            ret = 1;
+#ifdef DEBUG
+            printf("kernel_read [ ERROR ]\n");
+#endif
+            ret = 2;
         }
 
         free_ptr_2d((void **) kernel_src, KERNELS_COUNT);
     }
     else
     {
+#ifdef DEBUG
+        printf("kernel_len [ ERROR ]\n");
+#endif
         ret = 1;
     }
 
@@ -315,11 +324,11 @@ int main()
     long dsec, dnsec;
 
     //float in_data[DATA_SIZE] = { 0 };
-    float *in_data = malloc(sizeof(*in_data) * DATA_SIZE);
+    double *in_data = malloc(sizeof(*in_data) * DATA_SIZE);
 
 
     //float out_data[DATA_SIZE - 1] = { 0 };
-    float *out_data = malloc(sizeof(*out_data) * (DATA_SIZE - 1));
+    double *out_data = malloc(sizeof(*out_data) * (DATA_SIZE - 1));
 
     long int i;
     for (i = 0; i < DATA_SIZE; i++)
@@ -413,7 +422,12 @@ int main()
         return 1;
     }
 
-    cl_kernel kernel = clCreateKernel(program, "avg", &err);
+    cl_kernel kernel = clCreateKernel(program, TO_STR(AVG_PROG_NAME), &err);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clCreateKernel [ %s ]\n", err_str);
+#endif
+
     clReleaseProgram(program);
 
 
@@ -424,28 +438,28 @@ int main()
      * настройка переменных
      */
 
-    cl_mem input_left  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * (DATA_SIZE - 1), NULL, &err);
+    cl_mem input_left  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(double) * (DATA_SIZE - 1), NULL, &err);
 #ifdef DEBUG
     err_to_str(err, err_str);
     printf("clCreateBuffer [ %s ]\n", err_str);
 #endif
-    cl_mem input_right = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * (DATA_SIZE - 1), NULL, &err);
+    cl_mem input_right = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(double) * (DATA_SIZE - 1), NULL, &err);
 #ifdef DEBUG
     err_to_str(err, err_str);
     printf("clCreateBuffer [ %s ]\n", err_str);
 #endif
-    cl_mem output      = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * (DATA_SIZE - 1), NULL, &err);
+    cl_mem output      = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(double) * (DATA_SIZE - 1), NULL, &err);
 #ifdef DEBUG
     err_to_str(err, err_str);
     printf("clCreateBuffer [ %s ]\n", err_str);
 #endif
 
-    err = clEnqueueWriteBuffer(command_queue, input_left,  CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), in_data,     0, NULL, NULL);
+    err = clEnqueueWriteBuffer(command_queue, input_left,  CL_TRUE, 0, sizeof(double) * (DATA_SIZE - 1), in_data,     0, NULL, NULL);
 #ifdef DEBUG
     err_to_str(err, err_str);
     printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
 #endif
-    err = clEnqueueWriteBuffer(command_queue, input_right, CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), in_data + 1, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(command_queue, input_right, CL_TRUE, 0, sizeof(double) * (DATA_SIZE - 1), in_data + 1, 0, NULL, NULL);
 #ifdef DEBUG
     err_to_str(err, err_str);
     printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
@@ -479,6 +493,7 @@ int main()
 //    Необходим алгоритм вычисления размера локальной группы.
 //    Он должен быть кратен 64.
     size_t local_work_size = 1;
+
     cl_event myEvent;
     clock_gettime(CLOCK_ID, &start);
 
@@ -552,7 +567,7 @@ int main()
 
 
 
-    clEnqueueReadBuffer(command_queue, output, CL_TRUE, 0, sizeof(float) * (DATA_SIZE - 1), out_data, 0, NULL, NULL);
+    clEnqueueReadBuffer(command_queue, output, CL_TRUE, 0, sizeof(double) * (DATA_SIZE - 1), out_data, 0, NULL, NULL);
 
     printf("global work size: %d\tlocal work size: %d\n\n", global_work_size, local_work_size);
 

@@ -1,5 +1,5 @@
 avg: main.o kernel.o err.o free.o
-	$(CC) $(CFLAGS) -o $@ main.o kernel.o err.o free.o -lOpenCL
+	$(LD) $(LDFLAGS) -o $@ main.o kernel.o err.o free.o -lOpenCL
 main.o: main.c
 	$(CC) -c $(CFLAGS) -o $@ main.c
 kernel.o: kernel.c kernel.h

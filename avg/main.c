@@ -25,8 +25,10 @@
 //struct dev_prop
 //{
 //    size_t  max_param_size;
+//    int ratio;
 //};
 
+cl_uint total_devices_count = 0;
 cl_uint *devices_on_platform = NULL;
 cl_device_id **devices = NULL;
 //struct dev_prop **devices_prop;
@@ -90,6 +92,8 @@ int init(cl_device_type dev_type)
 #ifdef DEBUG
                     printf("platform: %d\t devices: %d\n", i, devices_on_platform[i]);
 #endif
+                    total_devices_count += devices_on_platform[i];
+
                     devices[i] = malloc(sizeof(**devices) * devices_on_platform[i]);
 //                    devices_prop[i] = malloc(sizeof(**devices_prop) * devices_on_platform[i]);
                     contexts[i] = malloc(sizeof(**contexts) * devices_on_platform[i]);
@@ -114,6 +118,9 @@ int init(cl_device_type dev_type)
 //                                           sizeof(devices_prop[i][j].max_param_size),
 //                                           &devices_prop[i][j].max_param_size,
 //                                           NULL);
+
+                            // !!! на базе считанных параметров необходимо вычислить коэффициент от 1 до 100 !!!
+                            // !!! пропорционально данному коэффициенту модули будут разбивать данные для параллельного вычисления !!!
 #ifdef DEBUG
                             printf("platform: %d\t cmd queue: %d\n", i, j);
 #endif
@@ -223,7 +230,7 @@ int avg_init()
                         err = clBuildProgram(program, 0, NULL, BUILD_OPTIONS, NULL, NULL);
                         if (err == CL_SUCCESS)
                         {
-                            avg_kernels[i][j] = clCreateKernel(program, "avg", &err);
+                            avg_kernels[i][j] = clCreateKernel(program, AVG_PROG_NAME_STR, &err);
                             if (err != CL_SUCCESS)
                             {
                                 ret = 5;
@@ -290,9 +297,113 @@ void avg_clear()
     free_ptr_2d((void **) avg_kernels, platforms_count);
 }
 
-int avg_calc(float *in, unsigned long int len)
+int avg_calc(const double *in, const unsigned long int len)
 {
     int ret = 0;
+
+    /*
+
+    struct block_info {
+        double *start;
+        unsigned long int len;
+    };
+
+    struct block_info **blocks = NULL;
+
+    // !!! вычисление длинны блока для устройства
+    double *cur_pointer = in;
+    cl_uint cur_device_index = 1;
+    unsigned long int remain_len = len;
+    unsigned long int block_len = len / total_devices_count;
+
+
+    // !!! необходимо для каждого ядра задать свой набор параметров, между которыми
+    // !!! пропорционально разделить данные...
+
+
+    blocks = malloc(sizeof(*blocks) * platforms_count);
+
+    int i;
+    for (i = 0; i < platforms_count; i++)
+    {
+        blocks[i] = malloc(sizeof(**blocks) * devices_on_platform[i]);
+        int j;
+        for (j = 0; j < devices_on_platform[i]; j++)
+        {
+            if (cur_device_index == total_devices_count)
+            {
+                blocks[i][j].start = cur_pointer;
+                blocks[i][j].len = remain_len;
+
+                remain_len = 0;
+                cur_pointer = NULL;
+            }
+            else
+            {
+                blocks[i][j].start = cur_pointer;
+                blocks[i][j].len = block_len;
+
+                remain_len -= block_len;
+                cur_pointer += block_len;
+            }
+
+
+        }
+    }
+
+//    настройка переменных
+
+    cl_mem in_left  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(*in) * (len - 1), NULL, &err);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clCreateBuffer [ %s ]\n", err_str);
+#endif
+    err = clSetKernelArg(kernel, 0, sizeof(in_left), &in_left);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
+
+
+    cl_mem in_right = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(*in) * (DATA_SIZE - 1), NULL, &err);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clCreateBuffer [ %s ]\n", err_str);
+#endif
+    err = clSetKernelArg(kernel, 1, sizeof(in_right), &in_right);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
+
+
+    cl_mem output      = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(*in) * (DATA_SIZE - 1), NULL, &err);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clCreateBuffer [ %s ]\n", err_str);
+#endif
+    err = clSetKernelArg(kernel, 2, sizeof(output), &output);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
+
+//     заполнение видео-памяти
+
+    err = clEnqueueWriteBuffer(command_queue, in_left,  CL_TRUE, 0, sizeof(double) * (DATA_SIZE - 1), in_data,     0, NULL, NULL);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
+#endif
+    err = clEnqueueWriteBuffer(command_queue, in_right, CL_TRUE, 0, sizeof(double) * (DATA_SIZE - 1), in_data + 1, 0, NULL, NULL);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
+#endif
+
+
+*/
+
     return ret;
 }
 
@@ -323,11 +434,8 @@ int main()
     struct timespec start, stop;
     long dsec, dnsec;
 
-    //float in_data[DATA_SIZE] = { 0 };
+
     double *in_data = malloc(sizeof(*in_data) * DATA_SIZE);
-
-
-    //float out_data[DATA_SIZE - 1] = { 0 };
     double *out_data = malloc(sizeof(*out_data) * (DATA_SIZE - 1));
 
     long int i;
@@ -335,6 +443,10 @@ int main()
     {
         in_data[i] = i;
     }
+
+
+
+
 
     cl_platform_id  platform_id;
     cl_uint         num_of_platforms = 0;
@@ -443,16 +555,39 @@ int main()
     err_to_str(err, err_str);
     printf("clCreateBuffer [ %s ]\n", err_str);
 #endif
+    err = clSetKernelArg(kernel, 0, sizeof(input_left), &input_left);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
+
+
     cl_mem input_right = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(double) * (DATA_SIZE - 1), NULL, &err);
 #ifdef DEBUG
     err_to_str(err, err_str);
     printf("clCreateBuffer [ %s ]\n", err_str);
 #endif
+    err = clSetKernelArg(kernel, 1, sizeof(input_right), &input_right);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
+
+
     cl_mem output      = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(double) * (DATA_SIZE - 1), NULL, &err);
 #ifdef DEBUG
     err_to_str(err, err_str);
     printf("clCreateBuffer [ %s ]\n", err_str);
 #endif
+    err = clSetKernelArg(kernel, 2, sizeof(output), &output);
+#ifdef DEBUG
+    err_to_str(err, err_str);
+    printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
+
+    /*
+     * заполнение видео-памяти
+     */
 
     err = clEnqueueWriteBuffer(command_queue, input_left,  CL_TRUE, 0, sizeof(double) * (DATA_SIZE - 1), in_data,     0, NULL, NULL);
 #ifdef DEBUG
@@ -465,21 +600,11 @@ int main()
     printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
 #endif
 
-    err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_left);
-#ifdef DEBUG
-    err_to_str(err, err_str);
-    printf("clSetKernelArg [ %s ]\n", err_str);
-#endif
-    err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &input_right);
-#ifdef DEBUG
-    err_to_str(err, err_str);
-    printf("clSetKernelArg [ %s ]\n", err_str);
-#endif
-    err = clSetKernelArg(kernel, 2, sizeof(cl_mem), &output);
-#ifdef DEBUG
-    err_to_str(err, err_str);
-    printf("clSetKernelArg [ %s ]\n", err_str);
-#endif
+
+
+
+
+
 
 
 
@@ -552,17 +677,10 @@ int main()
     printf("start time:\t%lld nsec\n", start_time);
     printf("end time:\t%lld nsec\n\n", end_time);
 
-    //cl_ulong kernel_queued_time = submit_time - queued_time;
     printf("kernel queued time:\t%lld nsec\n", submit_time - queued_time);
-
-    //cl_ulong kernel_sbmit_time = start_time - submit_time;
     printf("kernel submit time:\t%lld nsec\n", start_time - submit_time);
-
-    //cl_ulong kernel_exec_time = end_time - start_time;
     printf("kernel exec time:\t%lld nsec\n", end_time - start_time);
-
     printf("-------------------------------------------------\n");
-    //cl_ulong kernel_total_time = end_time - queued_time;
     printf("kernel total time:\t%lld nsec\n\n", end_time - queued_time);
 
 

@@ -270,7 +270,7 @@ int avg_init()
             ret = 2;
         }
 
-        free_ptr_2d((void **) kernel_src, KERNELS_COUNT);
+        free_ptr_2d((void **) kernel_src, 1);
     }
     else
     {
@@ -303,9 +303,24 @@ int avg_calc(const double *in, const unsigned long int len)
 
     /*
 
-    struct block_info {
+    struct par_info {       // !!! необходимо в соответствии с текущей структурой подправить алгоримт
         double *start;
         unsigned long int len;
+        cl_mem mem;
+    };
+
+    struct block_info {
+        struct par_info in_left;
+        struct par_info in_right;
+        struct par_info out;
+
+        double *start;
+        unsigned long int len;
+
+        cl_mem in_left;
+        cl_mem in_right;
+        cl_mem output;
+
     };
 
     struct block_info **blocks = NULL;
@@ -348,61 +363,73 @@ int avg_calc(const double *in, const unsigned long int len)
             }
 
 
+
+
+            //    настройка переменных
+
+            blocks[i][j].in_left = clCreateBuffer(contexts[i][j], CL_MEM_READ_ONLY,  sizeof(*in) * (blocks[i][j].len - 1), NULL, &err);     // !!! необходимо условие последнего блока. для всех остальных блоков, кроме последнего длинна будет равна blocks[i][j].len
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clCreateBuffer [ %s ]\n", err_str);
+#endif
+            err = clSetKernelArg(avg_kernels[i][j], 0, sizeof(blocks[i][j].in_left), &blocks[i][j].in_left);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
+
+
+            blocks[i][j].in_right = clCreateBuffer(contexts[i][j], CL_MEM_READ_ONLY,  sizeof(*in) * (blocks[i][j].len - 1), NULL, &err);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clCreateBuffer [ %s ]\n", err_str);
+#endif
+            err = clSetKernelArg(avg_kernels[i][j], 1, sizeof(blocks[i][j].in_right), &blocks[i][j].in_right);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
+
+
+            blocks[i][j].output      = clCreateBuffer(contexts[i][j], CL_MEM_WRITE_ONLY, sizeof(*in) * (blocks[i][j].len - 1), NULL, &err);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clCreateBuffer [ %s ]\n", err_str);
+#endif
+            err = clSetKernelArg(avg_kernels[i][j], 2, sizeof(blocks[i][j].output), &blocks[i][j].output);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clSetKernelArg [ %s ]\n", err_str);
+#endif
+
+
+
+            //     заполнение видео-памяти
+
+            if (remain_len != 0)
+            {
+                err = clEnqueueWriteBuffer(command_queue[i][j], blocks[i][j].in_left, CL_TRUE, 0, sizeof(double) * (blocks[i][j].len),     blocks[i][j].start, 0, NULL, NULL);
+            }
+            else
+            {
+                err = clEnqueueWriteBuffer(command_queue[i][j], blocks[i][j].in_left, CL_TRUE, 0, sizeof(double) * (blocks[i][j].len - 1), blocks[i][j].start, 0, NULL, NULL);
+            }
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
+#endif
+            err = clEnqueueWriteBuffer(command_queue, in_right, CL_TRUE, 0, sizeof(double) * (DATA_SIZE - 1), in_data + 1, 0, NULL, NULL);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
+#endif
         }
     }
 
-//    настройка переменных
-
-    cl_mem in_left  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(*in) * (len - 1), NULL, &err);
-#ifdef DEBUG
-    err_to_str(err, err_str);
-    printf("clCreateBuffer [ %s ]\n", err_str);
-#endif
-    err = clSetKernelArg(kernel, 0, sizeof(in_left), &in_left);
-#ifdef DEBUG
-    err_to_str(err, err_str);
-    printf("clSetKernelArg [ %s ]\n", err_str);
-#endif
-
-
-    cl_mem in_right = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(*in) * (DATA_SIZE - 1), NULL, &err);
-#ifdef DEBUG
-    err_to_str(err, err_str);
-    printf("clCreateBuffer [ %s ]\n", err_str);
-#endif
-    err = clSetKernelArg(kernel, 1, sizeof(in_right), &in_right);
-#ifdef DEBUG
-    err_to_str(err, err_str);
-    printf("clSetKernelArg [ %s ]\n", err_str);
-#endif
-
-
-    cl_mem output      = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(*in) * (DATA_SIZE - 1), NULL, &err);
-#ifdef DEBUG
-    err_to_str(err, err_str);
-    printf("clCreateBuffer [ %s ]\n", err_str);
-#endif
-    err = clSetKernelArg(kernel, 2, sizeof(output), &output);
-#ifdef DEBUG
-    err_to_str(err, err_str);
-    printf("clSetKernelArg [ %s ]\n", err_str);
-#endif
-
-//     заполнение видео-памяти
-
-    err = clEnqueueWriteBuffer(command_queue, in_left,  CL_TRUE, 0, sizeof(double) * (DATA_SIZE - 1), in_data,     0, NULL, NULL);
-#ifdef DEBUG
-    err_to_str(err, err_str);
-    printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
-#endif
-    err = clEnqueueWriteBuffer(command_queue, in_right, CL_TRUE, 0, sizeof(double) * (DATA_SIZE - 1), in_data + 1, 0, NULL, NULL);
-#ifdef DEBUG
-    err_to_str(err, err_str);
-    printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
-#endif
 
 
 */
+
 
     return ret;
 }

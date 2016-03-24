@@ -194,7 +194,7 @@ int init(cl_device_type dev_type)
 
 
 
-
+cl_program **avg_programs = NULL;
 cl_kernel **avg_kernels = NULL;
 
 int avg_init()
@@ -216,21 +216,24 @@ int avg_init()
             int i;
             cl_int err;
 
+            avg_programs = malloc(sizeof(*avg_programs) * platforms_count);
             avg_kernels = malloc(sizeof(*avg_kernels) * platforms_count);
             for (i = 0; i < platforms_count; i++)
             {
+                avg_programs[i] = malloc(sizeof(**avg_programs) * devices_on_platform[i]);
                 avg_kernels[i] = malloc(sizeof(**avg_kernels) * devices_on_platform[i]);
 
                 int j;
                 for (j = 0; j < devices_on_platform[i]; j++)
                 {
-                    cl_program program = clCreateProgramWithSource(contexts[i][j], 1, (const char **) kernel_src, NULL, &err);
+                    //cl_program program = clCreateProgramWithSource(contexts[i][j], 1, (const char **) kernel_src, NULL, &err);
+                    avg_programs[i][j] = clCreateProgramWithSource(contexts[i][j], 1, (const char **) kernel_src, NULL, &err);
                     if (err == CL_SUCCESS)
                     {
-                        err = clBuildProgram(program, 0, NULL, BUILD_OPTIONS, NULL, NULL);
+                        err = clBuildProgram(avg_programs[i][j], 0, NULL, BUILD_OPTIONS, NULL, NULL);
                         if (err == CL_SUCCESS)
                         {
-                            avg_kernels[i][j] = clCreateKernel(program, AVG_PROG_NAME_STR, &err);
+                            avg_kernels[i][j] = clCreateKernel(avg_programs[i][j], AVG_PROG_NAME_STR, &err);
                             if (err != CL_SUCCESS)
                             {
                                 ret = 5;
@@ -243,12 +246,10 @@ int avg_init()
 
                             char buffer[4096];
                             size_t length;
-                            clGetProgramBuildInfo(program, devices[i][j], CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &length);
+                            clGetProgramBuildInfo(avg_programs[i][j], devices[i][j], CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &length);
 
                             printf("%s\n", buffer);
                         }
-
-                        clReleaseProgram(program);
                     }
                     else
                     {
@@ -291,10 +292,12 @@ void avg_clear()
         for (j = 0; j < devices_on_platform[i]; j++)
         {
             clReleaseKernel(avg_kernels[i][j]);
+            clReleaseProgram(avg_programs[i][j]);
         }
     }
 
     free_ptr_2d((void **) avg_kernels, platforms_count);
+    free_ptr_2d((void **) avg_programs, platforms_count);
 }
 
 int avg_calc(const double *in, const unsigned long int len)

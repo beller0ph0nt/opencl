@@ -43,13 +43,13 @@ cl_command_queue **cmd_queues = NULL;
 
 void clear()
 {
-    int i, j;
-    for (i = 0; i < platforms_count; i++)
+    int plat, dev;
+    for (plat = 0; plat < platforms_count; plat++)
     {
-        for (j = 0; j < devices_on_platform[i]; j++)
+        for (dev = 0; dev < devices_on_platform[plat]; dev++)
         {
-            clReleaseCommandQueue(cmd_queues[i][j]);
-            clReleaseContext(contexts[i][j]);
+            clReleaseCommandQueue(cmd_queues[plat][dev]);
+            clReleaseContext(contexts[plat][dev]);
         }
     }
 
@@ -84,33 +84,33 @@ int init(cl_device_type dev_type)
             cmd_queues = malloc(sizeof(*cmd_queues) * platforms_count);
 
 
-            int i;
-            for (i = 0; i < platforms_count; i++)
+            int plat;
+            for (plat = 0; plat < platforms_count; plat++)
             {
-                if (clGetDeviceIDs(platforms[i], dev_type, 0, NULL, &devices_on_platform[i]) == CL_SUCCESS)
+                if (clGetDeviceIDs(platforms[plat], dev_type, 0, NULL, &devices_on_platform[plat]) == CL_SUCCESS)
                 {
 #ifdef DEBUG
-                    printf("platform: %d\t devices: %d\n", i, devices_on_platform[i]);
+                    printf("platform: %d\t devices: %d\n", plat, devices_on_platform[plat]);
 #endif
-                    total_devices_count += devices_on_platform[i];
+                    total_devices_count += devices_on_platform[plat];
 
-                    devices[i] = malloc(sizeof(**devices) * devices_on_platform[i]);
+                    devices[plat] = malloc(sizeof(**devices) * devices_on_platform[plat]);
 //                    devices_prop[i] = malloc(sizeof(**devices_prop) * devices_on_platform[i]);
-                    contexts[i] = malloc(sizeof(**contexts) * devices_on_platform[i]);
-                    cmd_queues[i] = malloc(sizeof(**cmd_queues) * devices_on_platform[i]);
+                    contexts[plat] = malloc(sizeof(**contexts) * devices_on_platform[plat]);
+                    cmd_queues[plat] = malloc(sizeof(**cmd_queues) * devices_on_platform[plat]);
 
                     cl_int *err = NULL;
 
-                    if (clGetDeviceIDs(platforms[i], dev_type, devices_on_platform[i], devices[i], NULL) == CL_SUCCESS)
+                    if (clGetDeviceIDs(platforms[plat], dev_type, devices_on_platform[plat], devices[plat], NULL) == CL_SUCCESS)
                     {
                         cl_context_properties properties[3] = {
                             CL_CONTEXT_PLATFORM,
-                            (cl_context_properties) platforms[i],
+                            (cl_context_properties) platforms[plat],
                             0
                         };
 
-                        int j;
-                        for (j = 0; j < devices_on_platform[i]; j++)
+                        int dev;
+                        for (dev = 0; dev < devices_on_platform[plat]; dev++)
                         {
                             // !!! добавить обработку ошибок !!!
 //                            clGetDeviceInfo(devices[i][j],
@@ -122,12 +122,12 @@ int init(cl_device_type dev_type)
                             // !!! на базе считанных параметров необходимо вычислить коэффициент от 1 до 100 !!!
                             // !!! пропорционально данному коэффициенту модули будут разбивать данные для параллельного вычисления !!!
 #ifdef DEBUG
-                            printf("platform: %d\t cmd queue: %d\n", i, j);
+                            printf("platform: %d\t cmd queue: %d\n", plat, dev);
 #endif
-                            contexts[i][j] = clCreateContext(properties, 1, &devices[i][j], NULL, NULL, err);
+                            contexts[plat][dev] = clCreateContext(properties, 1, &devices[plat][dev], NULL, NULL, err);
                             if (err != NULL)
                             {
-                                cmd_queues[i][j] = clCreateCommandQueue(contexts[i][j], devices[i][j], CL_QUEUE_PROFILING_ENABLE, err);
+                                cmd_queues[plat][dev] = clCreateCommandQueue(contexts[plat][dev], devices[plat][dev], CL_QUEUE_PROFILING_ENABLE, err);
                                 if (err == NULL)
                                 {
 #ifdef DEBUG
@@ -197,6 +197,13 @@ int init(cl_device_type dev_type)
 cl_program **avg_programs = NULL;
 cl_kernel **avg_kernels = NULL;
 
+struct kernel_prop
+{
+    size_t  pref_work_group_size_mult;
+};
+
+struct kernel_prop **avg_kernel_prop = NULL;
+
 int avg_init()
 {
     int ret = 0;
@@ -213,28 +220,53 @@ int avg_init()
 #ifdef DEBUG
             char err_str[MAX_STR_ERR_LEN];
 #endif
-            int i;
-            cl_int err;
-
             avg_programs = malloc(sizeof(*avg_programs) * platforms_count);
             avg_kernels = malloc(sizeof(*avg_kernels) * platforms_count);
-            for (i = 0; i < platforms_count; i++)
-            {
-                avg_programs[i] = malloc(sizeof(**avg_programs) * devices_on_platform[i]);
-                avg_kernels[i] = malloc(sizeof(**avg_kernels) * devices_on_platform[i]);
+            avg_kernel_prop = malloc(sizeof(*avg_kernel_prop) * platforms_count);
 
-                int j;
-                for (j = 0; j < devices_on_platform[i]; j++)
+            int plat;
+            cl_int err;
+            for (plat = 0; plat < platforms_count; plat++)
+            {
+                avg_programs[plat] = malloc(sizeof(**avg_programs) * devices_on_platform[plat]);
+                avg_kernels[plat] = malloc(sizeof(**avg_kernels) * devices_on_platform[plat]);
+                avg_kernel_prop[plat] = malloc(sizeof(**avg_kernel_prop) * devices_on_platform[plat]);
+
+                int dev;
+                for (dev = 0; dev < devices_on_platform[plat]; dev++)
                 {
-                    //cl_program program = clCreateProgramWithSource(contexts[i][j], 1, (const char **) kernel_src, NULL, &err);
-                    avg_programs[i][j] = clCreateProgramWithSource(contexts[i][j], 1, (const char **) kernel_src, NULL, &err);
+                    avg_programs[plat][dev] = clCreateProgramWithSource(contexts[plat][dev],
+                                                                        1,
+                                                                        (const char **) kernel_src,
+                                                                        NULL,
+                                                                        &err);
                     if (err == CL_SUCCESS)
                     {
-                        err = clBuildProgram(avg_programs[i][j], 0, NULL, BUILD_OPTIONS, NULL, NULL);
+                        err = clBuildProgram(avg_programs[plat][dev],
+                                             0,
+                                             NULL,
+                                             BUILD_OPTIONS,
+                                             NULL,
+                                             NULL);
                         if (err == CL_SUCCESS)
                         {
-                            avg_kernels[i][j] = clCreateKernel(avg_programs[i][j], AVG_PROG_NAME_STR, &err);
-                            if (err != CL_SUCCESS)
+                            avg_kernels[plat][dev] = clCreateKernel(avg_programs[plat][dev],
+                                                                    AVG_PROG_NAME_STR,
+                                                                    &err);
+                            if (err == CL_SUCCESS)
+                            {
+                                 err = clGetKernelWorkGroupInfo(avg_kernels[plat][dev],
+                                                                devices[plat][dev],
+                                                                CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
+                                                                sizeof(avg_kernel_prop[plat][dev].pref_work_group_size_mult),
+                                                                &avg_kernel_prop[plat][dev].pref_work_group_size_mult,
+                                                                NULL);
+                                 if (err != CL_SUCCESS)
+                                 {
+                                     ret = 6;
+                                 }
+                            }
+                            else
                             {
                                 ret = 5;
                             }
@@ -246,7 +278,12 @@ int avg_init()
 
                             char buffer[4096];
                             size_t length;
-                            clGetProgramBuildInfo(avg_programs[i][j], devices[i][j], CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &length);
+                            clGetProgramBuildInfo(avg_programs[plat][dev],
+                                                  devices[plat][dev],
+                                                  CL_PROGRAM_BUILD_LOG,
+                                                  sizeof(buffer),
+                                                  buffer,
+                                                  &length);
 
                             printf("%s\n", buffer);
                         }
@@ -296,6 +333,7 @@ void avg_clear()
         }
     }
 
+    free_ptr_2d((void **) avg_kernel_prop, platforms_count);
     free_ptr_2d((void **) avg_kernels, platforms_count);
     free_ptr_2d((void **) avg_programs, platforms_count);
 }
@@ -304,102 +342,130 @@ int avg_calc(const double *in, const unsigned long int len)
 {
     int ret = 0;
 
-    /*
 
-    struct par_info {       // !!! необходимо в соответствии с текущей структурой подправить алгоримт
+
+    struct par_info {
         double *start;
         unsigned long int len;
         cl_mem mem;
     };
 
     struct block_info {
-        struct par_info in_left;
-        struct par_info in_right;
+        struct par_info left;
+        struct par_info right;
         struct par_info out;
-
-        double *start;
-        unsigned long int len;
-
-        cl_mem in_left;
-        cl_mem in_right;
-        cl_mem output;
-
     };
 
     struct block_info **blocks = NULL;
 
-    // !!! вычисление длинны блока для устройства
-    double *cur_pointer = in;
-    cl_uint cur_device_index = 1;
+
+    double *cur_pointer = (double *) in;
+
     unsigned long int remain_len = len;
     unsigned long int block_len = len / total_devices_count;
 
-
-    // !!! необходимо для каждого ядра задать свой набор параметров, между которыми
-    // !!! пропорционально разделить данные...
-
-
     blocks = malloc(sizeof(*blocks) * platforms_count);
 
-    int i;
-    for (i = 0; i < platforms_count; i++)
+    int plat;
+    cl_uint cur_device_index = 1;
+    for (plat = 0; plat < platforms_count; plat++)
     {
-        blocks[i] = malloc(sizeof(**blocks) * devices_on_platform[i]);
-        int j;
-        for (j = 0; j < devices_on_platform[i]; j++)
-        {
-            if (cur_device_index == total_devices_count)
-            {
-                blocks[i][j].start = cur_pointer;
-                blocks[i][j].len = remain_len;
+        blocks[plat] = malloc(sizeof(**blocks) * devices_on_platform[plat]);
 
-                remain_len = 0;
-                cur_pointer = NULL;
-            }
-            else
+        int dev;
+        for (dev = 0; dev < devices_on_platform[plat]; dev++, cur_device_index++)
+        {
+            if (cur_device_index != total_devices_count)
             {
-                blocks[i][j].start = cur_pointer;
-                blocks[i][j].len = block_len;
+                blocks[plat][dev].left.start = cur_pointer;
+                blocks[plat][dev].left.len = block_len;
+
+                blocks[plat][dev].right.start = cur_pointer + 1;
+                blocks[plat][dev].right.len = block_len;
+
+                blocks[plat][dev].out.start = NULL;
+                blocks[plat][dev].out.len = block_len;
 
                 remain_len -= block_len;
                 cur_pointer += block_len;
             }
+            else
+            {
+                blocks[plat][dev].left.start = cur_pointer;
+                blocks[plat][dev].left.len = remain_len - 1;
 
+                blocks[plat][dev].right.start = cur_pointer + 1;
+                blocks[plat][dev].right.len = remain_len - 1;
 
+                blocks[plat][dev].out.start = NULL;
+                blocks[plat][dev].out.len = remain_len - 1;
+
+                remain_len = 0;
+                cur_pointer = NULL;
+            }
 
 
             //    настройка переменных
 
-            blocks[i][j].in_left = clCreateBuffer(contexts[i][j], CL_MEM_READ_ONLY,  sizeof(*in) * (blocks[i][j].len - 1), NULL, &err);     // !!! необходимо условие последнего блока. для всех остальных блоков, кроме последнего длинна будет равна blocks[i][j].len
+            cl_int err;
+#ifdef DEBUG
+            char err_str[MAX_STR_ERR_LEN];
+#endif
+
+            blocks[plat][dev].left.mem = clCreateBuffer(contexts[plat][dev],
+                                                        CL_MEM_READ_ONLY,
+                                                        sizeof(*in) * blocks[plat][dev].left.len,
+                                                        NULL,
+                                                        &err);
 #ifdef DEBUG
             err_to_str(err, err_str);
             printf("clCreateBuffer [ %s ]\n", err_str);
 #endif
-            err = clSetKernelArg(avg_kernels[i][j], 0, sizeof(blocks[i][j].in_left), &blocks[i][j].in_left);
+
+            err = clSetKernelArg(avg_kernels[plat][dev],
+                                 0,
+                                 sizeof(blocks[plat][dev].left.mem),
+                                 &blocks[plat][dev].left.mem);
 #ifdef DEBUG
             err_to_str(err, err_str);
             printf("clSetKernelArg [ %s ]\n", err_str);
 #endif
 
 
-            blocks[i][j].in_right = clCreateBuffer(contexts[i][j], CL_MEM_READ_ONLY,  sizeof(*in) * (blocks[i][j].len - 1), NULL, &err);
+            blocks[plat][dev].right.mem = clCreateBuffer(contexts[plat][dev],
+                                                         CL_MEM_READ_ONLY,
+                                                         sizeof(*in) * blocks[plat][dev].right.len,
+                                                         NULL,
+                                                         &err);
 #ifdef DEBUG
             err_to_str(err, err_str);
             printf("clCreateBuffer [ %s ]\n", err_str);
 #endif
-            err = clSetKernelArg(avg_kernels[i][j], 1, sizeof(blocks[i][j].in_right), &blocks[i][j].in_right);
+
+            err = clSetKernelArg(avg_kernels[plat][dev],
+                                 1,
+                                 sizeof(blocks[plat][dev].right.mem),
+                                 &blocks[plat][dev].right.mem);
 #ifdef DEBUG
             err_to_str(err, err_str);
             printf("clSetKernelArg [ %s ]\n", err_str);
 #endif
 
 
-            blocks[i][j].output      = clCreateBuffer(contexts[i][j], CL_MEM_WRITE_ONLY, sizeof(*in) * (blocks[i][j].len - 1), NULL, &err);
+            blocks[plat][dev].out.mem = clCreateBuffer(contexts[plat][dev],
+                                                       CL_MEM_WRITE_ONLY,
+                                                       sizeof(*in) * blocks[plat][dev].out.len,
+                                                       NULL,
+                                                       &err);
 #ifdef DEBUG
             err_to_str(err, err_str);
             printf("clCreateBuffer [ %s ]\n", err_str);
 #endif
-            err = clSetKernelArg(avg_kernels[i][j], 2, sizeof(blocks[i][j].output), &blocks[i][j].output);
+
+            err = clSetKernelArg(avg_kernels[plat][dev],
+                                 2,
+                                 sizeof(blocks[plat][dev].out.mem),
+                                 &blocks[plat][dev].out.mem);
 #ifdef DEBUG
             err_to_str(err, err_str);
             printf("clSetKernelArg [ %s ]\n", err_str);
@@ -409,29 +475,41 @@ int avg_calc(const double *in, const unsigned long int len)
 
             //     заполнение видео-памяти
 
-            if (remain_len != 0)
-            {
-                err = clEnqueueWriteBuffer(command_queue[i][j], blocks[i][j].in_left, CL_TRUE, 0, sizeof(double) * (blocks[i][j].len),     blocks[i][j].start, 0, NULL, NULL);
-            }
-            else
-            {
-                err = clEnqueueWriteBuffer(command_queue[i][j], blocks[i][j].in_left, CL_TRUE, 0, sizeof(double) * (blocks[i][j].len - 1), blocks[i][j].start, 0, NULL, NULL);
-            }
+            err = clEnqueueWriteBuffer(cmd_queues[plat][dev],
+                                       blocks[plat][dev].left.mem,
+                                       CL_TRUE,
+                                       0,
+                                       sizeof(*in) * blocks[plat][dev].left.len,
+                                       blocks[plat][dev].left.start,
+                                       0,
+                                       NULL,
+                                       NULL);
 #ifdef DEBUG
             err_to_str(err, err_str);
             printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
 #endif
-            err = clEnqueueWriteBuffer(command_queue, in_right, CL_TRUE, 0, sizeof(double) * (DATA_SIZE - 1), in_data + 1, 0, NULL, NULL);
+
+            err = clEnqueueWriteBuffer(cmd_queues[plat][dev],
+                                       blocks[plat][dev].right.mem,
+                                       CL_TRUE,
+                                       0,
+                                       sizeof(*in) * blocks[plat][dev].left.len,
+                                       blocks[plat][dev].right.start,
+                                       0,
+                                       NULL,
+                                       NULL);
 #ifdef DEBUG
             err_to_str(err, err_str);
             printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
 #endif
+
+
         }
     }
 
 
 
-*/
+
 
 
     return ret;
@@ -639,15 +717,18 @@ int main()
 
 
     /*
-     * вычисление кол-ва групп и размара каждой группы
+     * вычисление кол-ва групп и размера каждой группы
      */
+
+    size_t group_size_mult = 64;
 
     size_t div = (DATA_SIZE - 1) / V_LEN;
     size_t global_work_size = ((DATA_SIZE - 1) % V_LEN == 0) ? div : div + 1;
 
-//    Необходим алгоритм вычисления размера локальной группы.
-//    Он должен быть кратен 64.
-    size_t local_work_size = 1;
+    div = global_work_size / group_size_mult;
+    global_work_size = ((global_work_size % group_size_mult == 0) ? div : div + 1) * group_size_mult;
+
+    size_t local_work_size = group_size_mult;
 
     cl_event myEvent;
     clock_gettime(CLOCK_ID, &start);

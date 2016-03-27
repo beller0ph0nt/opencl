@@ -68,6 +68,12 @@ int init(cl_device_type dev_type)
 #ifdef DEBUG
     printf("init\n");
 #endif
+
+#ifdef DEBUG
+    char err_str[MAX_STR_ERR_LEN];
+#endif
+
+
     if (clGetPlatformIDs(0, NULL, &platforms_count) == CL_SUCCESS)
     {
 #ifdef DEBUG
@@ -122,13 +128,13 @@ int init(cl_device_type dev_type)
                             // !!! на базе считанных параметров необходимо вычислить коэффициент от 1 до 100 !!!
                             // !!! пропорционально данному коэффициенту модули будут разбивать данные для параллельного вычисления !!!
 #ifdef DEBUG
-                            printf("platform: %d\t cmd queue: %d\n", plat, dev);
+                            printf("plat: %d\t dev: %d\n", plat, dev);
 #endif
                             contexts[plat][dev] = clCreateContext(properties, 1, &devices[plat][dev], NULL, NULL, err);
-                            if (err != NULL)
+                            if (err == NULL)
                             {
                                 cmd_queues[plat][dev] = clCreateCommandQueue(contexts[plat][dev], devices[plat][dev], CL_QUEUE_PROFILING_ENABLE, err);
-                                if (err == NULL)
+                                if (err != NULL)
                                 {
 #ifdef DEBUG
                                     printf("clCreateCommandQueue [ ERROR ]\n");
@@ -140,7 +146,8 @@ int init(cl_device_type dev_type)
                             else
                             {
 #ifdef DEBUG
-                                printf("clCreateContext [ ERROR ]\n");
+                                err_to_str((*err), err_str);
+                                printf("clCreateContext [ %s ]\n", err_str);
 #endif
                                 ret = 5;
                                 break;
@@ -215,6 +222,7 @@ int avg_init()
         kernel_src = malloc(sizeof(*kernel_src));
         kernel_src[0] = malloc(sizeof(**kernel_src) * (len + 1));
         kernel_src[0][len] = 0;
+
         if (kernel_read(KERNEL_SRC, len, kernel_src[0]) == 0)
         {
 #ifdef DEBUG
@@ -342,6 +350,11 @@ int avg_calc(const double *in, const unsigned long int len)
 {
     int ret = 0;
 
+    struct timespec start, stop;
+    long dsec, dnsec;
+
+
+
 
 
     struct par_info {
@@ -350,10 +363,29 @@ int avg_calc(const double *in, const unsigned long int len)
         cl_mem mem;
     };
 
+    struct work_size {
+        size_t global;
+        size_t local;
+    };
+
+    struct work_info {
+        struct work_size size;
+    };
+
+    struct time_info {
+        cl_ulong queued;
+        cl_ulong submit;
+        cl_ulong start;
+        cl_ulong end;
+    };
+
     struct block_info {
         struct par_info left;
         struct par_info right;
         struct par_info out;
+        struct work_info work;
+        cl_event event;
+        struct time_info time;
     };
 
     struct block_info **blocks = NULL;
@@ -366,39 +398,44 @@ int avg_calc(const double *in, const unsigned long int len)
 
     blocks = malloc(sizeof(*blocks) * platforms_count);
 
-    int plat;
+    cl_int err;
+#ifdef DEBUG
+    char err_str[MAX_STR_ERR_LEN];
+#endif
+
+    int plat, dev;;
     cl_uint cur_device_index = 1;
     for (plat = 0; plat < platforms_count; plat++)
     {
         blocks[plat] = malloc(sizeof(**blocks) * devices_on_platform[plat]);
 
-        int dev;
+
         for (dev = 0; dev < devices_on_platform[plat]; dev++, cur_device_index++)
         {
             if (cur_device_index != total_devices_count)
             {
-                blocks[plat][dev].left.start = cur_pointer;
                 blocks[plat][dev].left.len = block_len;
+                blocks[plat][dev].left.start = cur_pointer;
 
-                blocks[plat][dev].right.start = cur_pointer + 1;
                 blocks[plat][dev].right.len = block_len;
+                blocks[plat][dev].right.start = cur_pointer + 1;
 
-                blocks[plat][dev].out.start = NULL;
                 blocks[plat][dev].out.len = block_len;
+                blocks[plat][dev].out.start = malloc(sizeof(*blocks[plat][dev].out.start) * blocks[plat][dev].out.len);
 
                 remain_len -= block_len;
                 cur_pointer += block_len;
             }
             else
             {
-                blocks[plat][dev].left.start = cur_pointer;
                 blocks[plat][dev].left.len = remain_len - 1;
+                blocks[plat][dev].left.start = cur_pointer;
 
-                blocks[plat][dev].right.start = cur_pointer + 1;
                 blocks[plat][dev].right.len = remain_len - 1;
+                blocks[plat][dev].right.start = cur_pointer + 1;
 
-                blocks[plat][dev].out.start = NULL;
                 blocks[plat][dev].out.len = remain_len - 1;
+                blocks[plat][dev].out.start = malloc(sizeof(*blocks[plat][dev].out.start) * blocks[plat][dev].out.len);
 
                 remain_len = 0;
                 cur_pointer = NULL;
@@ -406,11 +443,6 @@ int avg_calc(const double *in, const unsigned long int len)
 
 
             //    настройка переменных
-
-            cl_int err;
-#ifdef DEBUG
-            char err_str[MAX_STR_ERR_LEN];
-#endif
 
             blocks[plat][dev].left.mem = clCreateBuffer(contexts[plat][dev],
                                                         CL_MEM_READ_ONLY,
@@ -503,17 +535,166 @@ int avg_calc(const double *in, const unsigned long int len)
             printf("clEnqueueWriteBuffer [ %s ]\n", err_str);
 #endif
 
+            size_t div = blocks[plat][dev].out.len / V_LEN;
+            blocks[plat][dev].work.size.global = (blocks[plat][dev].out.len % V_LEN == 0) ? div : div + 1;
 
-            // вычисляем глобальный размер рабочего поля и размер группы
-            // отправляем запрос в очередь на i-ой платформе j-ого устройства и переходим к формированию следующего запроса
+            div = blocks[plat][dev].work.size.global / avg_kernel_prop[plat][dev].pref_work_group_size_mult;
+            blocks[plat][dev].work.size.global = ((blocks[plat][dev].work.size.global % avg_kernel_prop[plat][dev].pref_work_group_size_mult == 0) ? div : div + 1) * avg_kernel_prop[plat][dev].pref_work_group_size_mult;
+
+            blocks[plat][dev].work.size.local = avg_kernel_prop[plat][dev].pref_work_group_size_mult;
+
+
 
 
         }
     }
 
 
-    // цикл ожиданий завершения вычислений на i-ой платформе у j-ого устройства
+    clock_gettime(CLOCK_ID, &start);
 
+    for (plat = 0; plat < platforms_count; plat++)
+    {
+        for (dev = 0; dev < devices_on_platform[plat]; dev++)
+        {
+            err = clEnqueueNDRangeKernel(cmd_queues[plat][dev],
+                                         avg_kernels[plat][dev],
+                                         1,
+                                         NULL,
+                                         &blocks[plat][dev].work.size.global,
+                                         &blocks[plat][dev].work.size.local,
+                                         0,
+                                         NULL,
+                                         &blocks[plat][dev].event);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clEnqueueNDRangeKernel [ %s ]\n", err_str);
+#endif
+        }
+    }
+
+
+    for (plat = 0; plat < platforms_count; plat++)
+    {
+        for (dev = 0; dev < devices_on_platform[plat]; dev++)
+        {
+            clFinish(cmd_queues[plat][dev]);
+        }
+    }
+
+    clock_gettime(CLOCK_ID, &stop);
+    dsec = stop.tv_sec - start.tv_sec;
+    dnsec = stop.tv_nsec - start.tv_nsec;
+
+    printf("\nGPU: %f sec { sec: %ld, nsec: %ld }\n\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);
+
+
+
+    cl_ulong total_queued_time = 0;
+    cl_ulong total_submit_time = 0;
+    cl_ulong total_exec_time = 0;
+    cl_ulong total_time = 0;
+
+
+    // цикл ожиданий завершения вычислений на i-ой платформе у j-ого устройства
+    for (plat = 0; plat < platforms_count; plat++)
+    {
+        for (dev = 0; dev < devices_on_platform[plat]; dev++)
+        {
+
+
+            err = clEnqueueReadBuffer(cmd_queues[plat][dev],
+                                      blocks[plat][dev].out.mem,
+                                      CL_TRUE,
+                                      0,
+                                      sizeof(*blocks[plat][dev].out.start) * blocks[plat][dev].out.len,
+                                      blocks[plat][dev].out.start,
+                                      0,
+                                      NULL,
+                                      NULL);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clEnqueueReadBuffer [ %s ]\n", err_str);
+#endif
+
+            err = clGetEventProfilingInfo(blocks[plat][dev].event,
+                                          CL_PROFILING_COMMAND_QUEUED,
+                                          sizeof(blocks[plat][dev].time.queued),
+                                          &blocks[plat][dev].time.queued,
+                                          NULL);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clGetEventProfilingInfo [ %s ]\n", err_str);
+#endif
+
+            err = clGetEventProfilingInfo(blocks[plat][dev].event,
+                                          CL_PROFILING_COMMAND_SUBMIT,
+                                          sizeof(blocks[plat][dev].time.submit),
+                                          &blocks[plat][dev].time.submit,
+                                          NULL);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clGetEventProfilingInfo [ %s ]\n", err_str);
+#endif
+
+            err = clGetEventProfilingInfo(blocks[plat][dev].event,
+                                          CL_PROFILING_COMMAND_START,
+                                          sizeof(blocks[plat][dev].time.start),
+                                          &blocks[plat][dev].time.start,
+                                          NULL);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clGetEventProfilingInfo [ %s ]\n", err_str);
+#endif
+
+            err = clGetEventProfilingInfo(blocks[plat][dev].event,
+                                          CL_PROFILING_COMMAND_END,
+                                          sizeof(blocks[plat][dev].time.end),
+                                          &blocks[plat][dev].time.end,
+                                          NULL);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clGetEventProfilingInfo [ %s ]\n", err_str);
+#endif
+
+            printf("\nqueued time:\t%lld nsec\n", blocks[plat][dev].time.queued);
+            printf("submit time:\t%lld nsec\n", blocks[plat][dev].time.submit);
+            printf("start time:\t%lld nsec\n", blocks[plat][dev].time.start);
+            printf("end time:\t%lld nsec\n\n", blocks[plat][dev].time.end);
+
+            printf("kernel queued time:\t%lld nsec\n", blocks[plat][dev].time.submit - blocks[plat][dev].time.queued);
+            printf("kernel submit time:\t%lld nsec\n", blocks[plat][dev].time.start - blocks[plat][dev].time.submit);
+            printf("kernel exec time:\t%lld nsec\n", blocks[plat][dev].time.end - blocks[plat][dev].time.start);
+            printf("-------------------------------------------------\n");
+            printf("kernel total time:\t%lld nsec\n\n", blocks[plat][dev].time.end - blocks[plat][dev].time.queued);
+
+            total_queued_time += blocks[plat][dev].time.submit - blocks[plat][dev].time.queued;
+            total_submit_time += blocks[plat][dev].time.start - blocks[plat][dev].time.submit;
+            total_exec_time += blocks[plat][dev].time.end - blocks[plat][dev].time.start;
+            total_time += blocks[plat][dev].time.end - blocks[plat][dev].time.queued;
+
+
+            printf("output: ");
+            unsigned long i;
+            for(i = 0; i < blocks[plat][dev].out.len; i++)
+            {
+                printf("%f ", blocks[plat][dev].out.start[i]);
+            }
+            printf("\n");
+
+
+            free_ptr_1d(blocks[plat][dev].out.start);
+
+            clReleaseMemObject(blocks[plat][dev].left.mem);
+            clReleaseMemObject(blocks[plat][dev].right.mem);
+            clReleaseMemObject(blocks[plat][dev].out.mem);
+        }
+    }
+
+    printf("total queued time:\t%lld nsec\n", total_queued_time);
+    printf("total submit time:\t%lld nsec\n", total_submit_time);
+    printf("total exec time:\t%lld nsec\n", total_exec_time);
+    printf("-------------------------------------------------\n");
+    printf("total time:\t%lld nsec\n\n", total_time);
 
 
     return ret;
@@ -538,15 +719,9 @@ void cpu_test()
     */
 }
 
+
 int main()
 {
-#ifdef DEBUG
-    char err_str[MAX_STR_ERR_LEN];
-#endif
-    struct timespec start, stop;
-    long dsec, dnsec;
-
-
     double *in_data = malloc(sizeof(*in_data) * DATA_SIZE);
     double *out_data = malloc(sizeof(*out_data) * (DATA_SIZE - 1));
 
@@ -558,7 +733,27 @@ int main()
 
 
 
+    if (init(CL_DEVICE_TYPE_GPU) == 0)
+    {
+        if (avg_init() == 0)
+        {
+            avg_calc(in_data, DATA_SIZE);
+        }
 
+        avg_clear();
+    }
+
+    clear();
+
+
+
+    /*
+
+#ifdef DEBUG
+    char err_str[MAX_STR_ERR_LEN];
+#endif
+    struct timespec start, stop;
+    long dsec, dnsec;
 
     cl_platform_id  platform_id;
     cl_uint         num_of_platforms = 0;
@@ -595,9 +790,7 @@ int main()
 
 
 
-    /*
-     * процесс инициализации ядра
-     */
+    // процесс инициализации ядра
 
     int len;
     if (kernel_len(KERNEL_SRC, &len) == 0)
@@ -658,9 +851,7 @@ int main()
 
 
 
-    /*
-     * настройка переменных
-     */
+     // настройка переменных
 
     cl_mem input_left  = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(double) * (DATA_SIZE - 1), NULL, &err);
 #ifdef DEBUG
@@ -697,9 +888,7 @@ int main()
     printf("clSetKernelArg [ %s ]\n", err_str);
 #endif
 
-    /*
-     * заполнение видео-памяти
-     */
+     // заполнение видео-памяти
 
     err = clEnqueueWriteBuffer(command_queue, input_left,  CL_TRUE, 0, sizeof(double) * (DATA_SIZE - 1), in_data,     0, NULL, NULL);
 #ifdef DEBUG
@@ -720,9 +909,7 @@ int main()
 
 
 
-    /*
-     * вычисление кол-ва групп и размера каждой группы
-     */
+     // вычисление кол-ва групп и размера каждой группы
 
     size_t group_size_mult = 64;
 
@@ -738,9 +925,7 @@ int main()
     clock_gettime(CLOCK_ID, &start);
 
 
-    /*
-     * выполнение ядра
-     */
+     // выполнение ядра
 
     err = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 #ifdef DEBUG
@@ -752,9 +937,7 @@ int main()
 
 
 
-    /*
-     * вычисление времени выполнения
-     */
+     // вычисление времени выполнения
 
     clock_gettime(CLOCK_ID, &stop);
     dsec = stop.tv_sec - start.tv_sec;
@@ -821,6 +1004,8 @@ int main()
     clReleaseKernel(kernel);
     clReleaseCommandQueue(command_queue);
     clReleaseContext(context);
+
+    */
 
     return 0;
 }

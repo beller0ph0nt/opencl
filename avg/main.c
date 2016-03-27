@@ -595,27 +595,10 @@ int avg_calc(const double *in, const unsigned long int len)
     cl_ulong total_time = 0;
 
 
-    // цикл ожиданий завершения вычислений на i-ой платформе у j-ого устройства
     for (plat = 0; plat < platforms_count; plat++)
     {
         for (dev = 0; dev < devices_on_platform[plat]; dev++)
         {
-
-
-            err = clEnqueueReadBuffer(cmd_queues[plat][dev],
-                                      blocks[plat][dev].out.mem,
-                                      CL_TRUE,
-                                      0,
-                                      sizeof(*blocks[plat][dev].out.start) * blocks[plat][dev].out.len,
-                                      blocks[plat][dev].out.start,
-                                      0,
-                                      NULL,
-                                      NULL);
-#ifdef DEBUG
-            err_to_str(err, err_str);
-            printf("clEnqueueReadBuffer [ %s ]\n", err_str);
-#endif
-
             err = clGetEventProfilingInfo(blocks[plat][dev].event,
                                           CL_PROFILING_COMMAND_QUEUED,
                                           sizeof(blocks[plat][dev].time.queued),
@@ -671,8 +654,36 @@ int avg_calc(const double *in, const unsigned long int len)
             total_submit_time += blocks[plat][dev].time.start - blocks[plat][dev].time.submit;
             total_exec_time += blocks[plat][dev].time.end - blocks[plat][dev].time.start;
             total_time += blocks[plat][dev].time.end - blocks[plat][dev].time.queued;
+        }
+    }
 
 
+    printf("total queued time:\t%lld nsec\n", total_queued_time);
+    printf("total submit time:\t%lld nsec\n", total_submit_time);
+    printf("total exec time:\t%lld nsec\n", total_exec_time);
+    printf("-------------------------------------------------\n");
+    printf("total time:\t%lld nsec\n\n", total_time);
+
+    for (plat = 0; plat < platforms_count; plat++)
+    {
+        for (dev = 0; dev < devices_on_platform[plat]; dev++)
+        {
+
+
+            err = clEnqueueReadBuffer(cmd_queues[plat][dev],
+                                      blocks[plat][dev].out.mem,
+                                      CL_TRUE,
+                                      0,
+                                      sizeof(*blocks[plat][dev].out.start) * blocks[plat][dev].out.len,
+                                      blocks[plat][dev].out.start,
+                                      0,
+                                      NULL,
+                                      NULL);
+#ifdef DEBUG
+            err_to_str(err, err_str);
+            printf("clEnqueueReadBuffer [ %s ]\n", err_str);
+#endif
+/*
             printf("output: ");
             unsigned long i;
             for(i = 0; i < blocks[plat][dev].out.len; i++)
@@ -680,7 +691,7 @@ int avg_calc(const double *in, const unsigned long int len)
                 printf("%f ", blocks[plat][dev].out.start[i]);
             }
             printf("\n");
-
+*/
 
             free_ptr_1d(blocks[plat][dev].out.start);
 
@@ -689,12 +700,6 @@ int avg_calc(const double *in, const unsigned long int len)
             clReleaseMemObject(blocks[plat][dev].out.mem);
         }
     }
-
-    printf("total queued time:\t%lld nsec\n", total_queued_time);
-    printf("total submit time:\t%lld nsec\n", total_submit_time);
-    printf("total exec time:\t%lld nsec\n", total_exec_time);
-    printf("-------------------------------------------------\n");
-    printf("total time:\t%lld nsec\n\n", total_time);
 
 
     return ret;
@@ -747,7 +752,7 @@ int main()
 
 
 
-    /*
+/*
 
 #ifdef DEBUG
     char err_str[MAX_STR_ERR_LEN];
@@ -1005,7 +1010,7 @@ int main()
     clReleaseCommandQueue(command_queue);
     clReleaseContext(context);
 
-    */
+*/
 
     return 0;
 }

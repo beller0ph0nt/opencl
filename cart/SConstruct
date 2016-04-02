@@ -1,0 +1,5 @@
+env = Environment()
+
+env['CCFLAGS'] = '-std=c++11'
+
+SConscript(dirs = '.', variant_dir = 'build', exports = 'env')

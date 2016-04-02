@@ -1,0 +1,9 @@
+Import('env')
+
+env = env.Clone()
+
+env['CPPPATH'] = '/opt/AMDAPPSDK-3.0/include'
+
+obj = env.Object(Glob('*.cpp'))
+
+Return('obj')

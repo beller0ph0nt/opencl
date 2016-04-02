@@ -1,3 +1,0 @@
-Import('env')
-
-SConscript(dirs = 'src', exports = 'env')

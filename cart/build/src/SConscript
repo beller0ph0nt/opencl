@@ -1,8 +1,0 @@
-Import('env')
-
-obj = SConscript(dirs = ['controller', 'model', 'view'], exports = 'env')
-
-print('obj:')
-print(obj)
-
-env.Program('cart', 'main.cpp')

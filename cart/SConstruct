@@ -1,5 +1,5 @@
 env = Environment()
 
-env['CCFLAGS'] = '-std=c++11'
+env['CCFLAGS'] = ['-std=c++11', '-Wall']
 
 SConscript(dirs = '.', variant_dir = 'build', exports = 'env')

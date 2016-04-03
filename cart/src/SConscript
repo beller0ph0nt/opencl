@@ -1,5 +1,9 @@
 Import('env')
 
+env = env.Clone()
+
+env['LIBS'] = ['OpenCL']
+
 #['controller', 'model', 'view']
 obj = SConscript(dirs = ['model'], exports = 'env')
 

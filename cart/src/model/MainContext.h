@@ -13,6 +13,8 @@ typedef cl_device_id cl_device_id_t;
 typedef cl_platform_id cl_platform_id_t;
 typedef cl_context cl_context_t;
 typedef cl_command_queue cl_command_queue_t;
+typedef cl_context_properties cl_context_properties_t;
+typedef cl_int cl_int_t;
 
 struct MainContextData
 {

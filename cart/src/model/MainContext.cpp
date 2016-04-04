@@ -23,7 +23,51 @@ MainContext::MainContext(cl_device_type dev_type)
                                    NULL,
                                    &data->dev_count[p]) == CL_SUCCESS)
                 {
+                    data->total_dev_count += data->dev_count[p];
+                    data->dev[p] = new cl_device_id_t[data->dev_count[p]];
+                    data->context[p] = new cl_context_t[data->dev_count[p]];
+                    data->cmd[p] = new cl_command_queue_t[data->dev_count[p]];
 
+
+                    cl_int_t *err = NULL;
+
+                    if (clGetDeviceIDs(data->plat[p],
+                                       dev_type,
+                                       data->dev_count[p],
+                                       data->dev[p],
+                                       NULL) == CL_SUCCESS)
+                    {
+                        cl_context_properties_t properties[3] = {
+                            CL_CONTEXT_PLATFORM,
+                            (cl_context_properties_t) data->plat[p],
+                            0
+                        };
+
+                        for (cl_uint_t d = 0; d < data->dev_count[p]; d++)
+                        {
+                            data->context[p][d] = clCreateContext(properties,
+                                                                  1,
+                                                                  &data->dev[p][d],
+                                                                  NULL,
+                                                                  NULL,
+                                                                  err);
+                            if (err == NULL)
+                            {
+                                data->cmd[p][d] = clCreateCommandQueue(data->context[p][d],
+                                                                       data->dev[p][d],
+                                                                       CL_QUEUE_PROFILING_ENABLE,
+                                                                       err);
+                                if (err != NULL)
+                                {
+
+                                }
+                            }
+                            else
+                            {
+
+                            }
+                        }
+                    }
                 }
                 else
                 {

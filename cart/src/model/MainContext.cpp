@@ -1,6 +1,6 @@
 #include "MainContext.h"
 
-MainContext::MainContext(cl_device_type dev_type)
+MainContext::MainContext(cl_device_type_t dev_type)
 {
     data = new MainContextData;
 
@@ -87,6 +87,12 @@ MainContext::MainContext(cl_device_type dev_type)
 
 MainContext::~MainContext()
 {
+    /*
+     * добавить очистку
+       data->dev[p] = new cl_device_id_t[data->dev_count[p]];
+       data->context[p] = new cl_context_t[data->dev_count[p]];
+       data->cmd[p] = new cl_command_queue_t[data->dev_count[p]];
+    */
     delete[] data->cmd;
     delete[] data->context;
     delete[] data->dev;

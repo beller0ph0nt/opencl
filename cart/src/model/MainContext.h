@@ -15,6 +15,7 @@ typedef cl_context cl_context_t;
 typedef cl_command_queue cl_command_queue_t;
 typedef cl_context_properties cl_context_properties_t;
 typedef cl_int cl_int_t;
+typedef cl_device_type cl_device_type_t;
 
 struct MainContextData
 {
@@ -34,7 +35,7 @@ class MainContext
 private:
     struct MainContextData *data;
 public:
-    MainContext(cl_device_type dev_type);
+    MainContext(cl_device_type_t dev_type);
     ~MainContext();
 };
 

@@ -59,7 +59,6 @@ MainContext::MainContext(cl_device_type_t dev_type)
                                                                        err);
                                 if (err != NULL)
                                 {
-
                                 }
                             }
                             else
@@ -87,16 +86,25 @@ MainContext::MainContext(cl_device_type_t dev_type)
 
 MainContext::~MainContext()
 {
-    /*
-     * добавить очистку
-       data->dev[p] = new cl_device_id_t[data->dev_count[p]];
-       data->context[p] = new cl_context_t[data->dev_count[p]];
-       data->cmd[p] = new cl_command_queue_t[data->dev_count[p]];
-    */
+    for (cl_uint_t p = 0; p < data->plat_count; p++)
+    {
+        for (cl_uint_t d = 0; d < data->dev_count[p]; d++)
+        {
+            clReleaseCommandQueue(data->cmd[p][d]);
+            clReleaseContext(data->context[p][d]);
+        }
+
+        delete[] data->cmd[p];
+        delete[] data->context[p];
+        delete[] data->dev[p];
+    }
+
     delete[] data->cmd;
     delete[] data->context;
     delete[] data->dev;
+
     delete[] data->dev_count;
     delete[] data->plat;
+
     delete data;
 }

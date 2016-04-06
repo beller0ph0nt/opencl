@@ -59,39 +59,52 @@ MainContext::MainContext(cl_device_type_t dev_type)
                                                                        err);
                                 if (err != NULL)
                                 {
+                                    // исключение
                                 }
                             }
                             else
                             {
-
+                                // исключение
                             }
                         }
                     }
                 }
                 else
                 {
-
+                    // исключение
                 }
             }
         }
         else
         {
-
+            // исключение
         }
     }
     else
     {
+        // исключение
     }
 }
 
 MainContext::~MainContext()
 {
+
     for (cl_uint_t p = 0; p < data->plat_count; p++)
     {
         for (cl_uint_t d = 0; d < data->dev_count[p]; d++)
         {
-            clReleaseCommandQueue(data->cmd[p][d]);
-            clReleaseContext(data->context[p][d]);
+            cl_int_t err;
+            err = clReleaseCommandQueue(data->cmd[p][d]);
+            if (err != CL_SUCCESS)
+            {
+                // исключение
+            }
+
+            err = clReleaseContext(data->context[p][d]);
+            if (err != CL_SUCCESS)
+            {
+                // исключение
+            }
         }
 
         delete[] data->cmd[p];

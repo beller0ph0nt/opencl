@@ -20,14 +20,14 @@ typedef cl_device_type cl_device_type_t;
 struct MainContextData
 {
     cl_uint_t total_dev_count = 0;
-    cl_uint_t *dev_count;
-    cl_device_id_t **dev;
+    cl_uint_t *dev_count = NULL;
+    cl_device_id_t **dev = NULL;
 
     cl_uint_t plat_count = 0;
-    cl_platform_id_t *plat;
+    cl_platform_id_t *plat = NULL;
 
-    cl_context_t **context;
-    cl_command_queue_t **cmd;
+    cl_context_t **context = NULL;
+    cl_command_queue_t **cmd = NULL;
 };
 
 class MainContext

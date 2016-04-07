@@ -5,22 +5,28 @@
 
 #include <CL/cl.h>
 
+#include <string>
+#include <fstream>
+#include <sstream>
+using namespace std;
+
 typedef cl_program cl_program_t;
 typedef cl_kernel cl_kernel_t;
 
-struct KernelContextData
-{
-    cl_program_t **avg_programs = NULL;
-    cl_kernel_t **avg_kernels = NULL;
-};
+typedef struct {
+    size_t  pref_work_group_size_mult;
+} KernelProp;
 
 class KernelContext
 {
 private:
-    struct KernelContextData *data;
+    cl_program_t **program = NULL;
+    cl_kernel_t **kernel = NULL;
+    KernelProp **kernel_prop = NULL;
 public:
-    KernelContext() { data = new KernelContextData; }
-    ~KernelContext() { delete data; }
+    KernelContext(const string file_path);
+    ~KernelContext();
+    void ReadKernelSrc(const string file_path, string &src);
 };
 
 #endif // __KERNEL_CONTEXT_H

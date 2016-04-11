@@ -14,13 +14,14 @@ typedef struct {
     size_t  pref_work_group_size_mult;
 } KernelProp;
 
-class Kernel : public Program
+class Kernel
 {
 private:
     cl_kernel_t **kernel = NULL;
     KernelProp **prop = NULL;
+    Program *prog;
 public:
-    Kernel();
+    Kernel(Program *p):prog(p) {}
     ~Kernel();
 };
 

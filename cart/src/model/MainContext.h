@@ -16,7 +16,7 @@ typedef cl_command_queue cl_command_queue_t;
 
 class MainContext
 {
-private:
+public:
     cl_uint_t total_dev_count = 0;
     cl_uint_t *dev_count = NULL;
     cl_device_id_t **dev = NULL;

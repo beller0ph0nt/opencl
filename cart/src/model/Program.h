@@ -29,44 +29,4 @@ protected:
     void ReadFile(const string file_path, string *src);
 };
 
-
-
-class ProgramSource : public Program
-{
-public:
-    ProgramSource(MainContext *context, const string file_path):Program(context)
-    {
-        try
-        {
-            Create(file_path);
-        }
-        catch (int e)
-        {
-            throw e;
-        }
-    }
-protected:
-    void Create(const string file_path);
-};
-
-
-
-class ProgramBinary : public Program
-{
-public:
-    ProgramBinary(MainContext *context, const string file_path):Program(context)
-    {
-        try
-        {
-            Create(file_path);
-        }
-        catch (int e)
-        {
-            throw e;
-        }
-    }
-protected:
-    void Create(const string file_path);
-};
-
 #endif // __PROGRAM_H

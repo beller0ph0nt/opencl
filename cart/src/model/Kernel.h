@@ -23,6 +23,7 @@ private:
 public:
     Kernel(Program *p):prog(p) {}
     ~Kernel();
+    virtual void Calc() = 0;
 };
 
 #endif // __KERNEL_H

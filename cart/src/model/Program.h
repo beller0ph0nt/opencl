@@ -20,7 +20,7 @@ class Program
 {
 protected:
     cl_program_t **program = NULL;
-    MainContext *context;
+    MainContext *context = NULL;
 public:
     Program(MainContext *context):context(context) {}
     ~Program() {}

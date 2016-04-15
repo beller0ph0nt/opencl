@@ -18,7 +18,7 @@ class MainContext
 {
 public:
     cl_uint_t total_dev_count = 0;
-    cl_uint_t *dev_count = NULL;
+    cl_uint_t* dev_count = NULL;
     cl_device_id_t **dev = NULL;
 
     cl_uint_t plat_count = 0;

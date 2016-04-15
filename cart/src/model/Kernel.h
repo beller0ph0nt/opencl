@@ -10,6 +10,9 @@
 typedef cl_program cl_program_t;
 typedef cl_kernel cl_kernel_t;
 
+struct KernelCalcParam {
+};
+
 typedef struct {
     size_t  pref_work_group_size_mult;
 } KernelProp;
@@ -23,7 +26,8 @@ private:
 public:
     Kernel(Program *p):prog(p) {}
     ~Kernel();
-    virtual void Calc() = 0;
+
+    virtual void Calc(KernelCalcParam p) = 0;
 };
 
 #endif // __KERNEL_H

@@ -5,8 +5,8 @@
 extern "C" {
 #endif
 
-int kernel_len(const char * fname, int * len);
-int kernel_read(const char * fname, const int len, char * src);
+int kernel_len(const char* fname, int* len);
+int kernel_read(const char* fname, const int len, char* src);
 
 #ifdef __cplusplus
 }

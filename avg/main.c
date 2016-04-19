@@ -542,10 +542,6 @@ int avg_calc(const double *in, const unsigned long int len)
             blocks[plat][dev].work.size.global = ((blocks[plat][dev].work.size.global % avg_kernel_prop[plat][dev].pref_work_group_size_mult == 0) ? div : div + 1) * avg_kernel_prop[plat][dev].pref_work_group_size_mult;
 
             blocks[plat][dev].work.size.local = avg_kernel_prop[plat][dev].pref_work_group_size_mult;
-
-
-
-
         }
     }
 

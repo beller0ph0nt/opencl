@@ -22,3 +22,4 @@ protected:
 };
 
 #endif // __PROGRAM_BINARY_H
+

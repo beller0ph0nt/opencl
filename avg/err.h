@@ -1,8 +1,6 @@
 #ifndef __ERR_H
 #define __ERR_H
 
-#define MAX_STR_ERR_LEN     255
-
 #ifdef __cplusplus
 extern "C" {
 #endif

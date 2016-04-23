@@ -1,5 +1,7 @@
 #include <CL/cl.h>
 
+#include "err.h"
+
 const char* err_to_str(const cl_uint err)
 {
     switch (err)
@@ -65,6 +67,6 @@ const char* err_to_str(const cl_uint err)
     case CL_INVALID_DEVICE_PARTITION_COUNT:             return "CL_INVALID_DEVICE_PARTITION_COUNT";
     case CL_INVALID_PIPE_SIZE:                          return "CL_INVALID_PIPE_SIZE";
     case CL_INVALID_DEVICE_QUEUE:                       return "CL_INVALID_DEVICE_QUEUE";
-    default:                                            return "UNKNOWN";
+    default:                                            return "CL_UNKNOWN";
     }
 }

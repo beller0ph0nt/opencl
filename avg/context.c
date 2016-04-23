@@ -1,9 +1,6 @@
 #include "free.h"
 #include "context.h"
 
-/*
- *
- */
 context_t* context_create(cl_device_type dev_type)
 {
     context_t* context = malloc(sizeof(*context));
@@ -154,9 +151,6 @@ context_t* context_create(cl_device_type dev_type)
     return context;
 }
 
-/*
- *
- */
 void context_clear(context_t* context)
 {
     int p, d;

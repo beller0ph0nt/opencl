@@ -27,15 +27,7 @@ typedef struct
     cl_device_type dev_type = CL_DEVICE_TYPE_GPU;
 } context_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 context_t* context_create(cl_device_type dev_type);
 void context_clear(context_t* context);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // __CONTEXT_H

@@ -8,38 +8,18 @@
 
 int file_len(const char* fname, int* len)
 {
-    int ret = 0x00;
+    int ret = 0;
 
-    int fd = open(fname, O_RDONLY);
-    if (fd != -1)
+    struct stat st;
+
+    if (stat(fname, &st) != -1)
     {
-        int offset = lseek(fd, 0, SEEK_END);
-        if (offset != -1)
-        {
-            *len = offset;
-        }
-        else
-        {
-            ret |= 0x04;
-#ifdef DEBUG
-            perror("kernel_len lseek error");
-#endif
-        }
-
-        if (close(fd) == -1)
-        {
-            ret |= 0x02;
-#ifdef DEBUG
-            perror("kernel_len close error");
-#endif
-        }
+        *len = st.st_size;
     }
     else
     {
-        ret |= 0x01;
-#ifdef DEBUG
-        perror("kernel_len open error");
-#endif
+        ret = 1;
+        perror("stat");
     }
 
     return ret;

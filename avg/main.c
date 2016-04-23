@@ -6,8 +6,8 @@
 #include <stdlib.h>
 
 #include "err.h"
+#include "file.h"
 #include "free.h"
-#include "kernel.h"
 #include "params.h"
 
 #define CLOCK_ID        CLOCK_REALTIME  // CLOCK_PROCESS_CPUTIME_ID    //

@@ -10,7 +10,13 @@
 
 typedef struct
 {
+    size_t  pref_work_group_size_mult;
+} kernel_prop_t;
+
+typedef struct
+{
     cl_kernel** kernels = NULL;
+    kernel_prop_t** prop;
 } kernel_t;
 
 kernel_t* kernel_create(const context_t* context, const program_t* prog);

@@ -160,13 +160,9 @@ void context_clear(context_t* context)
         for (d = 0; d < context->dev_on_plat[p]; d++)
         {
             err = clReleaseCommandQueue(context->cmd[p][d]);
-#ifdef DEBUG
             printf("clReleaseCommandQueue [ %s ]\n", err_to_str(err));
-#endif
             err = clReleaseContext(context->contexts[p][d]);
-#ifdef DEBUG
             printf("clReleaseContext [ %s ]\n", err_to_str(err));
-#endif
         }
     }
 

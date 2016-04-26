@@ -22,7 +22,7 @@ kernel_t* kernel_create(const context_t* context, const program_t* prog)
             for (dev = 0; dev < context->dev_on_plat[plat]; dev++)
             {
                 kern->kernels[plat][dev] = clCreateKernel(prog->programs[plat][dev],
-                                                          AVG_PROG_NAME_STR,
+                                                          prog->prog_name,
                                                           &err);
                 if (err == CL_SUCCESS)
                 {

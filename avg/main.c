@@ -403,7 +403,7 @@ int avg_calc(const double *in, const unsigned long int len)
     char err_str[MAX_STR_ERR_LEN];
 #endif
 
-    int plat, dev;;
+    int plat, dev;
     cl_uint cur_device_index = 1;
     for (plat = 0; plat < platforms_count; plat++)
     {

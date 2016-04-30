@@ -358,7 +358,7 @@ int avg_calc(const double *in, const unsigned long int len)
 
 
     struct par_info {
-        double *start;
+        double* start;
         unsigned long int len;
         cl_mem mem;
     };

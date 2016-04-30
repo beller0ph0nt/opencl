@@ -1,6 +1,10 @@
 #ifndef __KERNEL_AVG_H
 #define __KERNEL_AVG_H
 
+#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
+
+#include <CL/cl.h>
+
 #include "kernel.h"
 #include "context.h"
 
@@ -36,8 +40,11 @@ struct avg_block_t
     struct avg_par_info_t right;
     struct avg_par_info_t out;
     struct avg_work_info_t work;
-    cl_event event;
     struct avg_time_info_t time;
+    cl_event event;
+    cl_context context;
+    cl_kernel kernel;
+    cl_command_queue cmd;
 };
 
 struct avg_params_t {

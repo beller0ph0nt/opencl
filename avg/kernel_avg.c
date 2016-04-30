@@ -8,6 +8,8 @@ void kernel_avg_calc(const context_t* context,
 {
     struct avg_block_t** blocks = NULL;
 
+    pthread_t threads[context->total_dev_count];
+
     double* cur_pointer = (double*) params->in;
 
     unsigned long int remain_len = params->len;
@@ -51,9 +53,32 @@ void kernel_avg_calc(const context_t* context,
                 remain_len = 0;
                 cur_pointer = NULL;
             }
-        }
 
-        // вызов нового потока
+            if (pthread_create(threads[cur_device_index - 1],
+                               NULL,
+                               thread_func,
+                               (void*) &blocks[plat][dev]) == 0)
+            {
+                printf("pthread_create [ ok ]\n");
+            }
+            else
+            {
+                printf("pthread_create [ error ]\n");
+            }
+        }
+    }
+
+    int i = 0;
+    for (i = 0; i < context->total_dev_count; i++)
+    {
+        if (pthread_join(threads[i], NULL) == 0)
+        {
+            printf("pthread_join [ ok ]\n");
+        }
+        else
+        {
+            printf("pthread_join [ error ]\n");
+        }
     }
 }
 

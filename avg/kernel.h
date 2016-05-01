@@ -15,11 +15,11 @@ typedef struct
 
 typedef struct
 {
-    cl_kernel** kernels = NULL;
+    cl_kernel** kernels;
     kernel_prop_t** prop;
 } kernel_t;
 
 kernel_t* kernel_create(const context_t* context, const program_t* prog);
-void kernel_clear(context_t* context, kernel_t* kernel);
+void kernel_clear(const context_t* context, kernel_t* kernel);
 
 #endif // __KERNEL_H

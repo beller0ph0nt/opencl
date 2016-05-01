@@ -49,11 +49,15 @@ struct avg_block_t
 
 struct avg_params_t {
     double* in;
-    unsigned long int len;
+    unsigned long int in_len;
+    double* out;
+    unsigned long int out_len;
 };
 
 void kernel_avg_calc(const context_t* context,
                      const kernel_t* kernel,
                      struct avg_params_t* params);
+
+void* avg_thread_func(void* arg);
 
 #endif // __KERNEL_AVG_H

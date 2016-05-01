@@ -1,5 +1,7 @@
 #include <stdlib.h>
 
+#include "free.h"
+
 void free_ptr_2d(void** p, const unsigned long int len_2d)
 {
     unsigned long int i;
@@ -8,11 +10,7 @@ void free_ptr_2d(void** p, const unsigned long int len_2d)
     {
         for (i = 0; i < len_2d; i++)
         {
-            if (p[i] != NULL)
-            {
-                free(p[i]);
-                p[i] = NULL;
-            }
+            free_ptr_1d(p[i]);
         }
 
         free(p);

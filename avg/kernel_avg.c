@@ -1,22 +1,23 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <pthread.h>
 
+#include "err.h"
+#include "free.h"
 #include "params.h"
 #include "kernel_avg.h"
 
 void kernel_avg_calc(const context_t* context,
                      const kernel_t* kernel,
-                     struct avg_params_t *params)
+                     struct avg_params_t* params)
 {
-    struct avg_block_t** blocks = NULL;
-
     pthread_t threads[context->total_dev_count];
 
     double* cur_pointer = (double*) params->in;
+    unsigned long int remain_len = params->in_len;
+    unsigned long int block_len = params->in_len / context->total_dev_count;
 
-    unsigned long int remain_len = params->len;
-    unsigned long int block_len = params->len / context->total_dev_count;
-
-    blocks = malloc(sizeof(*blocks) * context->plat_count);
+    struct avg_block_t** blocks = malloc(sizeof(*blocks) * context->plat_count);
 
     int plat, dev;
     cl_uint cur_device_index = 1;
@@ -59,24 +60,21 @@ void kernel_avg_calc(const context_t* context,
                 cur_pointer = NULL;
             }
 
-            size_t vectors_count = blocks[plat][dev].out.len / V_LEN;
-            blocks[plat][dev].work.size.global = (blocks[plat][dev].out.len % V_LEN == 0) ? vectors_count : vectors_count + 1;
+            size_t work_items_count = blocks[plat][dev].out.len / V_LEN;
+            if (blocks[plat][dev].out.len % V_LEN != 0)
+                work_items_count++;
 
-            size_t groups_count = blocks[plat][dev].work.size.global / kernel->prop[plat][dev].pref_work_group_size_mult;
-            blocks[plat][dev].work.size.global = ((blocks[plat][dev].work.size.global % kernel->prop[plat][dev].pref_work_group_size_mult == 0) ? groups_count : groups_count + 1) * kernel->prop[plat][dev].pref_work_group_size_mult;
+            size_t work_groups_count = work_items_count / kernel->prop[plat][dev].pref_work_group_size_mult;
+            if (work_items_count % kernel->prop[plat][dev].pref_work_group_size_mult != 0)
+                work_groups_count++;
 
+            blocks[plat][dev].work.size.global = work_groups_count * kernel->prop[plat][dev].pref_work_group_size_mult;
             blocks[plat][dev].work.size.local = kernel->prop[plat][dev].pref_work_group_size_mult;
 
-
-
-
-
-
-
-            if (pthread_create(threads[cur_device_index - 1],
+            if (pthread_create(&threads[cur_device_index - 1],
                                NULL,
-                               thread_func,
-                               (void*) &blocks[plat][dev]) == 0)
+                               avg_thread_func,
+                               &blocks[plat][dev]) == 0)
             {
                 printf("pthread_create [ ok ]\n");
             }
@@ -100,27 +98,49 @@ void kernel_avg_calc(const context_t* context,
         }
     }
 
+
+
+    cur_device_index = 0;
+    for (plat = 0; plat < context->plat_count; plat++)
+    {
+        for (dev = 0; dev < context->dev_on_plat[plat]; dev++, cur_device_index++)
+        {
+            printf("dev %ui: ", cur_device_index);
+
+            unsigned long i;
+            for(i = 0; i < blocks[plat][dev].out.len; i++)
+            {
+                printf("%f ", blocks[plat][dev].out.start[i]);
+            }
+            printf("\n");
+
+            free_ptr_1d(blocks[plat][dev].out.start);
+        }
+    }
+
     // освободить динамическую память
 }
 
-void* thread_func(void* arg)
+void* avg_thread_func(void* arg)
 {
     cl_int err;
     struct avg_block_t* block = (struct avg_block_t*) arg;
-
 
     block->left.mem = clCreateBuffer(block->context,
                                      CL_MEM_READ_ONLY,
                                      sizeof(*block->left.start) * block->left.len,
                                      NULL,
                                      &err);
-    printf("clCreateBuffer [ %s ]\n", err_to_str(err););
+    printf("clCreateBuffer [ %s ]\n", err_to_str(err));
 
     err = clSetKernelArg(block->kernel,
                          0,
                          sizeof(block->left.mem),
                          &block->left.mem);
     printf("clSetKernelArg [ %s ]\n", err_to_str(err));
+
+
+
 
     block->right.mem = clCreateBuffer(block->context,
                                       CL_MEM_READ_ONLY,
@@ -135,6 +155,9 @@ void* thread_func(void* arg)
                          &block->right.mem);
     printf("clSetKernelArg [ %s ]\n", err_to_str(err));
 
+
+
+
     block->out.mem = clCreateBuffer(block->context,
                                     CL_MEM_WRITE_ONLY,
                                     sizeof(*block->out.start) * block->out.len,
@@ -148,7 +171,8 @@ void* thread_func(void* arg)
                          &block->out.mem);
     printf("clSetKernelArg [ %s ]\n", err_to_str(err));
 
-    //     заполнение видео-памяти
+
+
 
     err = clEnqueueWriteBuffer(block->cmd,
                                block->left.mem,
@@ -172,6 +196,9 @@ void* thread_func(void* arg)
                                NULL);
     printf("clEnqueueWriteBuffer [ %s ]\n", err_to_str(err));
 
+
+
+
     err = clEnqueueNDRangeKernel(block->cmd,
                                  block->kernel,
                                  1,
@@ -183,7 +210,42 @@ void* thread_func(void* arg)
                                  &block->event);
     printf("clEnqueueNDRangeKernel [ %s ]\n", err_to_str(err));
 
-    clFinish(block->cmd);
+    err = clFinish(block->cmd);
+    printf("clFinish [ %s ]\n", err_to_str(err));
+
+
+
+
+    err = clGetEventProfilingInfo(block->event,
+                                  CL_PROFILING_COMMAND_QUEUED,
+                                  sizeof(block->time.queued),
+                                  &block->time.queued,
+                                  NULL);
+    printf("clGetEventProfilingInfo CL_PROFILING_COMMAND_QUEUED [ %s ]\n", err_to_str(err));
+
+    err = clGetEventProfilingInfo(block->event,
+                                  CL_PROFILING_COMMAND_SUBMIT,
+                                  sizeof(block->time.submit),
+                                  &block->time.submit,
+                                  NULL);
+    printf("clGetEventProfilingInfo CL_PROFILING_COMMAND_SUBMIT [ %s ]\n", err_to_str(err));
+
+    err = clGetEventProfilingInfo(block->event,
+                                  CL_PROFILING_COMMAND_START,
+                                  sizeof(block->time.start),
+                                  &block->time.start,
+                                  NULL);
+    printf("clGetEventProfilingInfo CL_PROFILING_COMMAND_START [ %s ]\n", err_to_str(err));
+
+    err = clGetEventProfilingInfo(block->event,
+                                  CL_PROFILING_COMMAND_END,
+                                  sizeof(block->time.end),
+                                  &block->time.end,
+                                  NULL);
+    printf("clGetEventProfilingInfo CL_PROFILING_COMMAND_END [ %s ]\n", err_to_str(err));
+
+
+
 
     err = clEnqueueReadBuffer(block->cmd,
                               block->out.mem,
@@ -199,7 +261,14 @@ void* thread_func(void* arg)
 
 
 
+    err = clReleaseMemObject(block->left.mem);
+    printf("clReleaseMemObject [ %s ]\n", err_to_str(err));
 
+    err = clReleaseMemObject(block->right.mem);
+    printf("clReleaseMemObject [ %s ]\n", err_to_str(err));
 
+    err = clReleaseMemObject(block->out.mem);
+    printf("clReleaseMemObject [ %s ]\n", err_to_str(err));
 
+    return NULL;
 }

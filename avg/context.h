@@ -13,18 +13,18 @@
 
 typedef struct
 {
-    cl_uint total_dev_count = 0;
-    cl_uint* dev_on_plat = NULL;
-    cl_device_id** dev = NULL;
-    //dev_prop_t** dev_prop = NULL;
+    cl_uint total_dev_count;
+    cl_uint* dev_on_plat;
+    cl_device_id** dev;
+    //dev_prop_t** dev_prop;
 
-    cl_uint plat_count = 0;
-    cl_platform_id* plat = NULL;
+    cl_uint plat_count;
+    cl_platform_id* plat;
 
-    cl_context** contexts = NULL;
-    cl_command_queue** cmd = NULL;
+    cl_context** contexts;
+    cl_command_queue** cmd;
 
-    cl_device_type dev_type = CL_DEVICE_TYPE_GPU;
+    cl_device_type dev_type;
 } context_t;
 
 context_t* context_create(cl_device_type dev_type);

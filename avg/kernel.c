@@ -1,3 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "err.h"
+#include "free.h"
 #include "kernel.h"
 
 kernel_t* kernel_create(const context_t* context, const program_t* prog)
@@ -13,7 +18,7 @@ kernel_t* kernel_create(const context_t* context, const program_t* prog)
 
         int plat;
         cl_int err;
-        for (plat = 0; plat < platforms_count; plat++)
+        for (plat = 0; plat < context->plat_count; plat++)
         {
             kern->kernels[plat] = malloc(sizeof(**kern->kernels) * context->dev_on_plat[plat]);
             kern->prop[plat] = malloc(sizeof(**kern->prop) * context->dev_on_plat[plat]);
@@ -53,7 +58,7 @@ kernel_t* kernel_create(const context_t* context, const program_t* prog)
     return kern;
 }
 
-void kernel_clear(context_t* context, kernel_t* kernel)
+void kernel_clear(const context_t *context, kernel_t* kernel)
 {
     int i, j;
     cl_int err;
@@ -61,7 +66,7 @@ void kernel_clear(context_t* context, kernel_t* kernel)
     {
         for (j = 0; j < context->dev_on_plat[i]; j++)
         {
-            clReleaseKernel(kernel->kernels[i][j]);
+            err = clReleaseKernel(kernel->kernels[i][j]);
             printf("clReleaseKernel [ %s ]\n", err_to_str(err));
         }
     }

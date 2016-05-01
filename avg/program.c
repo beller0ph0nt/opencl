@@ -1,3 +1,10 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "err.h"
+#include "file.h"
+#include "free.h"
 #include "program.h"
 
 program_t* program_create_src(const context_t* context,
@@ -44,7 +51,7 @@ program_t* program_create_src(const context_t* context,
                             err = clBuildProgram(prog->programs[plat][dev],
                                                  0,
                                                  NULL,
-                                                 BUILD_OPTIONS,
+                                                 NULL, //BUILD_OPTIONS,
                                                  NULL,
                                                  NULL);
                             printf("clBuildProgram [ %s ]\n", err_to_str(err));
@@ -101,7 +108,7 @@ program_t* program_create_bin(const context_t* context, const char* bin_path, co
     return NULL;
 }
 
-void program_clear(context_t* context, program_t* prog)
+void program_clear(const context_t *context, program_t* prog)
 {
     int i, j;
     cl_int err;
@@ -109,7 +116,7 @@ void program_clear(context_t* context, program_t* prog)
     {
         for (j = 0; j < context->dev_on_plat[i]; j++)
         {
-            clReleaseProgram(prog->programs[i][j]);
+            err = clReleaseProgram(prog->programs[i][j]);
             printf("clReleaseProgram [ %s ]\n", err_to_str(err));
         }
     }

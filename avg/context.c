@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "err.h"
 #include "free.h"
 #include "context.h"
 
@@ -15,9 +19,8 @@ context_t* context_create(cl_device_type dev_type)
         err = clGetPlatformIDs(0, NULL, &context->plat_count);
         if (err == CL_SUCCESS)
         {
-#ifdef DEBUG
             printf("platforms count: %d\n", context->plat_count);
-#endif
+
             context->plat = malloc(sizeof(*context->plat) * context->plat_count);
 
             err = clGetPlatformIDs(context->plat_count, context->plat, NULL);
@@ -27,7 +30,7 @@ context_t* context_create(cl_device_type dev_type)
 
                 context->dev = malloc(sizeof(*context->dev) * context->plat_count);
     //            context->dev_prop = malloc(sizeof(*context->dev_prop) * context->plat_count);
-                context->contexts = malloc(sizeof(*contexts) * context->plat_count);
+                context->contexts = malloc(sizeof(*context->contexts) * context->plat_count);
                 context->cmd = malloc(sizeof(*context->cmd) * context->plat_count);
 
                 int p;

@@ -22,6 +22,8 @@
 #define MAX_PLATFORMS   100
 #define MAX_DEVICES     100
 
+/*
+
 //struct dev_prop
 //{
 //    size_t  max_param_size;
@@ -525,7 +527,7 @@ int avg_calc(const double *in, const unsigned long int len)
                                        blocks[plat][dev].right.mem,
                                        CL_TRUE,
                                        0,
-                                       sizeof(*in) * blocks[plat][dev].left.len,
+                                       sizeof(*in) * blocks[plat][dev].right.len,
                                        blocks[plat][dev].right.start,
                                        0,
                                        NULL,
@@ -679,15 +681,15 @@ int avg_calc(const double *in, const unsigned long int len)
             err_to_str(err, err_str);
             printf("clEnqueueReadBuffer [ %s ]\n", err_str);
 #endif
-/*
-            printf("output: ");
-            unsigned long i;
-            for(i = 0; i < blocks[plat][dev].out.len; i++)
-            {
-                printf("%f ", blocks[plat][dev].out.start[i]);
-            }
-            printf("\n");
-*/
+
+//            printf("output: ");
+//            unsigned long i;
+//            for(i = 0; i < blocks[plat][dev].out.len; i++)
+//            {
+//                printf("%f ", blocks[plat][dev].out.start[i]);
+//            }
+//            printf("\n");
+
 
             free_ptr_1d(blocks[plat][dev].out.start);
 
@@ -705,21 +707,20 @@ int avg_calc(const double *in, const unsigned long int len)
 
 void cpu_test()
 {
-    /*
-    clock_gettime(CLOCK_ID, &start);
+//    clock_gettime(CLOCK_ID, &start);
 
-    for (i = 0; i < DATA_SIZE - 1; i++)
-    {
-        out_data[i] = (in_data[i] + in_data[i + 1]) / 2.0;
-    }
+//    for (i = 0; i < DATA_SIZE - 1; i++)
+//    {
+//        out_data[i] = (in_data[i] + in_data[i + 1]) / 2.0;
+//    }
 
-    clock_gettime(CLOCK_ID, &stop);
-    dsec = stop.tv_sec - start.tv_sec;
-    dnsec = stop.tv_nsec - start.tv_nsec;
-    printf("CPU: %f sec { sec: %ld, nsec: %ld }\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);
-    */
+//    clock_gettime(CLOCK_ID, &stop);
+//    dsec = stop.tv_sec - start.tv_sec;
+//    dnsec = stop.tv_nsec - start.tv_nsec;
+//    printf("CPU: %f sec { sec: %ld, nsec: %ld }\n", dsec + (dnsec / 1000000000.0), dsec, dnsec);
 }
 
+*/
 
 int main()
 {
@@ -734,6 +735,8 @@ int main()
 
 
 
+
+/*
     if (init(CL_DEVICE_TYPE_GPU) == 0)
     {
         if (avg_init() == 0)
@@ -745,6 +748,7 @@ int main()
     }
 
     clear();
+*/
 
 
 

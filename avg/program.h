@@ -9,8 +9,8 @@
 
 typedef struct
 {
-    cl_program** programs = NULL;
-    char* prog_name = NULL;
+    char* prog_name;
+    cl_program** programs;
 } program_t;
 
 program_t* program_create_src(const context_t* context,
@@ -21,6 +21,6 @@ program_t* program_create_bin(const context_t* context,
                               const char* bin_path,
                               const char* prog_name);
 
-void program_clear(context_t* context, program_t* prog);
+void program_clear(const context_t* context, program_t* prog);
 
 #endif // __PROGRAM_H

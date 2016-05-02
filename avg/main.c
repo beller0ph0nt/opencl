@@ -5,22 +5,27 @@
 #include <CL/cl.h>
 #include <stdlib.h>
 
-#include "err.h"
-#include "file.h"
-#include "free.h"
-#include "params.h"
+//#include "err.h"
+//#include "file.h"
+//#include "free.h"
+//#include "params.h"
 
-#define CLOCK_ID        CLOCK_REALTIME  // CLOCK_PROCESS_CPUTIME_ID    //
-#define KERNELS_COUNT   1
+#include "kernel.h"
+#include "context.h"
+#include "program.h"
+#include "kernel_avg.h"
+
+//#define CLOCK_ID        CLOCK_REALTIME  // CLOCK_PROCESS_CPUTIME_ID    //
+//#define KERNELS_COUNT   1
 
 //#define DATA_SIZE       16384     // V_LEN * max_param_size
 #define DATA_SIZE       10000000
 
-#define KERNEL_SRC      "average.cl"
-#define BUILD_OPTIONS   "-I ./"
+//#define KERNEL_SRC      "average.cl"
+//#define BUILD_OPTIONS   "-I ./"
 
-#define MAX_PLATFORMS   100
-#define MAX_DEVICES     100
+//#define MAX_PLATFORMS   100
+//#define MAX_DEVICES     100
 
 /*
 
@@ -733,6 +738,32 @@ int main()
         in_data[i] = i;
     }
 
+
+    context_t* context = context_create(CL_DEVICE_TYPE_GPU);
+    if (context != NULL)
+    {
+        program_t* prog = program_create_src(context, "average.cl", "avg");
+        if (prog != NULL)
+        {
+            kernel_t* kern = kernel_create(context, prog);
+            if (kern != NULL)
+            {
+                struct avg_params_t params;
+                params.in = in_data;
+                params.in_len = DATA_SIZE;
+                params.out = out_data;
+                params.out_len = DATA_SIZE - 1;
+
+                kernel_avg_calc(context, kern, &params);
+
+                kernel_clear(context, kern);
+            }
+
+            program_clear(context, prog);
+        }
+
+        context_clear(context);
+    }
 
 
 

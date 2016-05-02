@@ -7,6 +7,8 @@
 
 context_t* context_create(cl_device_type dev_type)
 {
+    printf("\ncontext creating...\n");
+
     context_t* context = malloc(sizeof(*context));
 
     if (context != NULL)
@@ -17,6 +19,7 @@ context_t* context_create(cl_device_type dev_type)
         context->dev_type = dev_type;
 
         err = clGetPlatformIDs(0, NULL, &context->plat_count);
+        printf("clGetPlatformIDs \t [%s]\n", err_to_str(err));
         if (err == CL_SUCCESS)
         {
             printf("platforms count: %d\n", context->plat_count);
@@ -24,12 +27,13 @@ context_t* context_create(cl_device_type dev_type)
             context->plat = malloc(sizeof(*context->plat) * context->plat_count);
 
             err = clGetPlatformIDs(context->plat_count, context->plat, NULL);
+            printf("clGetPlatformIDs \t [%s]\n", err_to_str(err));
             if (err == CL_SUCCESS)
             {
                 context->dev_on_plat = malloc(sizeof(*context->dev_on_plat) * context->plat_count);
 
                 context->dev = malloc(sizeof(*context->dev) * context->plat_count);
-    //            context->dev_prop = malloc(sizeof(*context->dev_prop) * context->plat_count);
+//                context->dev_prop = malloc(sizeof(*context->dev_prop) * context->plat_count);
                 context->contexts = malloc(sizeof(*context->contexts) * context->plat_count);
                 context->cmd = malloc(sizeof(*context->cmd) * context->plat_count);
 
@@ -41,6 +45,7 @@ context_t* context_create(cl_device_type dev_type)
                                          0,
                                          NULL,
                                          &context->dev_on_plat[p]);
+                    printf("clGetDeviceIDs \t\t [%s]\n", err_to_str(err));
                     if (err == CL_SUCCESS)
                     {
 #ifdef DEBUG
@@ -49,7 +54,7 @@ context_t* context_create(cl_device_type dev_type)
                         context->total_dev_count += context->dev_on_plat[p];
 
                         context->dev[p] = malloc(sizeof(**context->dev) * context->dev_on_plat[p]);
-    //                   context->dev_prop[p] = malloc(sizeof(**context->dev_prop) * context->dev_on_plat[p]);
+//                       context->dev_prop[p] = malloc(sizeof(**context->dev_prop) * context->dev_on_plat[p]);
                         context->contexts[p] = malloc(sizeof(**context->contexts) * context->dev_on_plat[p]);
                         context->cmd[p] = malloc(sizeof(**context->cmd) * context->dev_on_plat[p]);
 
@@ -58,6 +63,7 @@ context_t* context_create(cl_device_type dev_type)
                                              context->dev_on_plat[p],
                                              context->dev[p],
                                              NULL);
+                        printf("clGetDeviceIDs \t\t [%s]\n", err_to_str(err));
                         if (err == CL_SUCCESS)
                         {
                             cl_context_properties properties[3] = {
@@ -69,17 +75,17 @@ context_t* context_create(cl_device_type dev_type)
                             int d;
                             for (d = 0; d < context->dev_on_plat[p]; d++)
                             {
-                                // !!! добавить обработку ошибок !!!
-    //                            clGetDeviceInfo(devices[i][j],
-    //                                           CL_DEVICE_MAX_PARAMETER_SIZE,
-    //                                           sizeof(devices_prop[i][j].max_param_size),
-    //                                           &devices_prop[i][j].max_param_size,
-    //                                           NULL);
+//                                 !!! добавить обработку ошибок !!!
+//                                clGetDeviceInfo(devices[i][j],
+//                                               CL_DEVICE_MAX_PARAMETER_SIZE,
+//                                               sizeof(devices_prop[i][j].max_param_size),
+//                                               &devices_prop[i][j].max_param_size,
+//                                               NULL);
 
-                                // !!! на базе считанных параметров необходимо вычислить коэффициент от 1 до 100 !!!
-                                // !!! пропорционально данному коэффициенту модули будут разбивать данные для параллельного вычисления !!!
+//                                 !!! на базе считанных параметров необходимо вычислить коэффициент от 1 до 100 !!!
+//                                 !!! пропорционально данному коэффициенту модули будут разбивать данные для параллельного вычисления !!!
 #ifdef DEBUG
-                                printf("plat: %d\t dev: %d\n", p, d);
+                                printf("\nplat: %d\t dev: %d\n", p, d);
 #endif
                                 context->contexts[p][d] = clCreateContext(properties,
                                                                       1,
@@ -87,26 +93,22 @@ context_t* context_create(cl_device_type dev_type)
                                                                       NULL,
                                                                       NULL,
                                                                       &err);
+                                printf("clCreateContext \t [%s]\n", err_to_str(err));
                                 if (err == CL_SUCCESS)
                                 {
                                     context->cmd[p][d] = clCreateCommandQueue(context->contexts[p][d],
                                                                               context->dev[p][d],
                                                                               CL_QUEUE_PROFILING_ENABLE,
                                                                               &err);
+                                    printf("clCreateCommandQueue \t [%s]\n", err_to_str(err));
                                     if (err != CL_SUCCESS)
                                     {
-#ifdef DEBUG
-                                        printf("clCreateCommandQueue [ %s ]\n", err_to_str(err));
-#endif
                                         ret = 6;
                                         break;
                                     }
                                 }
                                 else
                                 {
-#ifdef DEBUG
-                                    printf("clCreateContext [ %s ]\n", err_to_str(err));
-#endif
                                     ret = 5;
                                     break;
                                 }
@@ -114,40 +116,30 @@ context_t* context_create(cl_device_type dev_type)
                         }
                         else
                         {
-#ifdef DEBUG
-                            printf("clGetDeviceIDs [ %s ]\n", err_to_str(err));
-#endif
+
                             ret = 4;
                         }
                     }
                     else
                     {
-#ifdef DEBUG
-                        printf("clGetDeviceIDs [ %s ]\n", err_to_str(err));
-#endif
                         ret = 3;
                     }
                 }
             }
             else
             {
-#ifdef DEBUG
-                printf("clGetPlatformIDs [ %s ]\n", err_to_str(err));
-#endif
                 ret = 2;
             }
         }
         else
         {
-#ifdef DEBUG
-            printf("clGetPlatformIDs [ %s ]\n", err_to_str(err));
-#endif
             ret = 1;
         }
 
         if (ret != 0)
         {
             context_clear(context);
+            context = NULL;
         }
     }
 
@@ -156,6 +148,11 @@ context_t* context_create(cl_device_type dev_type)
 
 void context_clear(context_t* context)
 {
+    if (context == NULL)
+        return;
+
+    printf("\ncontext clearing...\n");
+
     int p, d;
     cl_int err;
     for (p = 0; p < context->plat_count; p++)
@@ -163,9 +160,9 @@ void context_clear(context_t* context)
         for (d = 0; d < context->dev_on_plat[p]; d++)
         {
             err = clReleaseCommandQueue(context->cmd[p][d]);
-            printf("clReleaseCommandQueue [ %s ]\n", err_to_str(err));
+            printf("clReleaseCommandQueue \t [%s]\n", err_to_str(err));
             err = clReleaseContext(context->contexts[p][d]);
-            printf("clReleaseContext [ %s ]\n", err_to_str(err));
+            printf("clReleaseContext \t [%s]\n", err_to_str(err));
         }
     }
 

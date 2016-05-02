@@ -11,6 +11,8 @@ program_t* program_create_src(const context_t* context,
                               const char* src_path,
                               const char *prog_name)
 {
+    printf("\nprogram src creating...\n");
+
     program_t* prog = malloc(sizeof(*prog));
 
     if (prog != NULL)
@@ -45,44 +47,40 @@ program_t* program_create_src(const context_t* context,
                                                                               (const char **) kernel_src,
                                                                               NULL,
                                                                               &err);
-                        printf("clCreateProgramWithSource [ %s ]\n", err_to_str(err));
+                        printf("clCreateProgramWithSource \t [%s]\n", err_to_str(err));
                         if (err == CL_SUCCESS)
                         {
                             err = clBuildProgram(prog->programs[plat][dev],
                                                  0,
                                                  NULL,
-                                                 NULL, //BUILD_OPTIONS,
+                                                 "-I ./", //BUILD_OPTIONS,
                                                  NULL,
                                                  NULL);
-                            printf("clBuildProgram [ %s ]\n", err_to_str(err));
+                            printf("clBuildProgram \t\t\t [%s]\n", err_to_str(err));
                             if (err != CL_SUCCESS)
                             {
                                 ret = 4;
-                                printf("Error building program\n");
-
                                 char buffer[4096];
                                 size_t length;
-                                clGetProgramBuildInfo(prog->programs[plat][dev],
-                                                      context->dev[plat][dev],
-                                                      CL_PROGRAM_BUILD_LOG,
-                                                      sizeof(buffer),
-                                                      buffer,
-                                                      &length);
-
+                                err = clGetProgramBuildInfo(prog->programs[plat][dev],
+                                                            context->dev[plat][dev],
+                                                            CL_PROGRAM_BUILD_LOG,
+                                                            sizeof(buffer),
+                                                            buffer,
+                                                            &length);
+                                printf("clGetProgramBuildInfo \t\t [%s]\n", err_to_str(err));
                                 printf("%s\n", buffer);
                             }
                         }
                         else
                         {
                             ret = 3;
-                            break;
                         }
                     }
                 }
             }
             else
             {
-                printf("kernel_read [ ERROR ]\n");
                 ret = 2;
             }
 
@@ -90,26 +88,34 @@ program_t* program_create_src(const context_t* context,
         }
         else
         {
-            printf("kernel_len [ ERROR ]\n");
             ret = 1;
         }
 
         if (ret != 0)
         {
             program_clear(context, prog);
+            prog = NULL;
         }
     }
 
     return prog;
 }
 
-program_t* program_create_bin(const context_t* context, const char* bin_path, const char *prog_name)
+program_t* program_create_bin(const context_t* context,
+                              const char* bin_path,
+                              const char *prog_name)
 {
+    printf("\nprogram bin creating...\n");
     return NULL;
 }
 
 void program_clear(const context_t *context, program_t* prog)
 {
+    if (context == NULL || prog == NULL)
+        return;
+
+    printf("\nprogram clearing...\n");
+
     int i, j;
     cl_int err;
     for (i = 0; i < context->plat_count; i++)
@@ -117,7 +123,7 @@ void program_clear(const context_t *context, program_t* prog)
         for (j = 0; j < context->dev_on_plat[i]; j++)
         {
             err = clReleaseProgram(prog->programs[i][j]);
-            printf("clReleaseProgram [ %s ]\n", err_to_str(err));
+            printf("clReleaseProgram \t [%s]\n", err_to_str(err));
         }
     }
 

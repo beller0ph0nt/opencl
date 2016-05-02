@@ -76,11 +76,11 @@ void kernel_avg_calc(const context_t* context,
                                avg_thread_func,
                                &blocks[plat][dev]) == 0)
             {
-                printf("pthread_create [ ok ]\n");
+                printf("pthread_create [ok]\n");
             }
             else
             {
-                printf("pthread_create [ error ]\n");
+                printf("pthread_create [error]\n");
             }
         }
     }
@@ -90,11 +90,11 @@ void kernel_avg_calc(const context_t* context,
     {
         if (pthread_join(threads[i], NULL) == 0)
         {
-            printf("pthread_join [ ok ]\n");
+            printf("pthread_join [ok]\n");
         }
         else
         {
-            printf("pthread_join [ error ]\n");
+            printf("pthread_join [error]\n");
         }
     }
 
@@ -105,7 +105,7 @@ void kernel_avg_calc(const context_t* context,
     {
         for (dev = 0; dev < context->dev_on_plat[plat]; dev++, cur_device_index++)
         {
-            printf("dev %ui: ", cur_device_index);
+            printf("dev %u: ", cur_device_index);
 
             unsigned long i;
             for(i = 0; i < blocks[plat][dev].out.len; i++)
@@ -124,6 +124,7 @@ void kernel_avg_calc(const context_t* context,
 void* avg_thread_func(void* arg)
 {
     cl_int err;
+    pthread_t thread_id = pthread_self();
     struct avg_block_t* block = (struct avg_block_t*) arg;
 
     block->left.mem = clCreateBuffer(block->context,
@@ -131,13 +132,13 @@ void* avg_thread_func(void* arg)
                                      sizeof(*block->left.start) * block->left.len,
                                      NULL,
                                      &err);
-    printf("clCreateBuffer [ %s ]\n", err_to_str(err));
+    printf("[%lu] clCreateBuffer \t [%s]\n", thread_id, err_to_str(err));
 
     err = clSetKernelArg(block->kernel,
                          0,
                          sizeof(block->left.mem),
                          &block->left.mem);
-    printf("clSetKernelArg [ %s ]\n", err_to_str(err));
+    printf("[%lu] clSetKernelArg \t\t [%s]\n", thread_id, err_to_str(err));
 
 
 
@@ -147,13 +148,13 @@ void* avg_thread_func(void* arg)
                                       sizeof(*block->right.start) * block->right.len,
                                       NULL,
                                       &err);
-    printf("clCreateBuffer [ %s ]\n", err_to_str(err));
+    printf("[%lu] clCreateBuffer [%s]\n", thread_id, err_to_str(err));
 
     err = clSetKernelArg(block->kernel,
                          1,
                          sizeof(block->right.mem),
                          &block->right.mem);
-    printf("clSetKernelArg [ %s ]\n", err_to_str(err));
+    printf("[%lu] clSetKernelArg [%s]\n", thread_id, err_to_str(err));
 
 
 
@@ -163,13 +164,13 @@ void* avg_thread_func(void* arg)
                                     sizeof(*block->out.start) * block->out.len,
                                     NULL,
                                     &err);
-    printf("clCreateBuffer [ %s ]\n", err_to_str(err));
+    printf("[%lu] clCreateBuffer [%s]\n", thread_id, err_to_str(err));
 
     err = clSetKernelArg(block->kernel,
                          2,
                          sizeof(block->out.mem),
                          &block->out.mem);
-    printf("clSetKernelArg [ %s ]\n", err_to_str(err));
+    printf("[%lu] clSetKernelArg [%s]\n", thread_id, err_to_str(err));
 
 
 
@@ -183,7 +184,7 @@ void* avg_thread_func(void* arg)
                                0,
                                NULL,
                                NULL);
-    printf("clEnqueueWriteBuffer [ %s ]\n", err_to_str(err));
+    printf("[%lu] clEnqueueWriteBuffer [%s]\n", thread_id, err_to_str(err));
 
     err = clEnqueueWriteBuffer(block->cmd,
                                block->right.mem,
@@ -194,7 +195,7 @@ void* avg_thread_func(void* arg)
                                0,
                                NULL,
                                NULL);
-    printf("clEnqueueWriteBuffer [ %s ]\n", err_to_str(err));
+    printf("[%lu] clEnqueueWriteBuffer [%s]\n", thread_id, err_to_str(err));
 
 
 
@@ -208,10 +209,10 @@ void* avg_thread_func(void* arg)
                                  0,
                                  NULL,
                                  &block->event);
-    printf("clEnqueueNDRangeKernel [ %s ]\n", err_to_str(err));
+    printf("[%lu] clEnqueueNDRangeKernel [%s]\n", thread_id, err_to_str(err));
 
     err = clFinish(block->cmd);
-    printf("clFinish [ %s ]\n", err_to_str(err));
+    printf("[%lu] clFinish [%s]\n", thread_id, err_to_str(err));
 
 
 
@@ -221,28 +222,28 @@ void* avg_thread_func(void* arg)
                                   sizeof(block->time.queued),
                                   &block->time.queued,
                                   NULL);
-    printf("clGetEventProfilingInfo CL_PROFILING_COMMAND_QUEUED [ %s ]\n", err_to_str(err));
+    printf("[%lu] clGetEventProfilingInfo CL_PROFILING_COMMAND_QUEUED [%s]\n", thread_id, err_to_str(err));
 
     err = clGetEventProfilingInfo(block->event,
                                   CL_PROFILING_COMMAND_SUBMIT,
                                   sizeof(block->time.submit),
                                   &block->time.submit,
                                   NULL);
-    printf("clGetEventProfilingInfo CL_PROFILING_COMMAND_SUBMIT [ %s ]\n", err_to_str(err));
+    printf("[%lu] clGetEventProfilingInfo CL_PROFILING_COMMAND_SUBMIT [%s]\n", thread_id, err_to_str(err));
 
     err = clGetEventProfilingInfo(block->event,
                                   CL_PROFILING_COMMAND_START,
                                   sizeof(block->time.start),
                                   &block->time.start,
                                   NULL);
-    printf("clGetEventProfilingInfo CL_PROFILING_COMMAND_START [ %s ]\n", err_to_str(err));
+    printf("[%lu] clGetEventProfilingInfo CL_PROFILING_COMMAND_START [%s]\n", thread_id, err_to_str(err));
 
     err = clGetEventProfilingInfo(block->event,
                                   CL_PROFILING_COMMAND_END,
                                   sizeof(block->time.end),
                                   &block->time.end,
                                   NULL);
-    printf("clGetEventProfilingInfo CL_PROFILING_COMMAND_END [ %s ]\n", err_to_str(err));
+    printf("[%lu] clGetEventProfilingInfo CL_PROFILING_COMMAND_END [%s]\n", thread_id, err_to_str(err));
 
 
 
@@ -256,19 +257,19 @@ void* avg_thread_func(void* arg)
                               0,
                               NULL,
                               NULL);
-    printf("clEnqueueReadBuffer [ %s ]\n", err_to_str(err));
+    printf("[%lu] clEnqueueReadBuffer [%s]\n", thread_id, err_to_str(err));
 
 
 
 
     err = clReleaseMemObject(block->left.mem);
-    printf("clReleaseMemObject [ %s ]\n", err_to_str(err));
+    printf("[%lu] clReleaseMemObject [%s]\n", thread_id, err_to_str(err));
 
     err = clReleaseMemObject(block->right.mem);
-    printf("clReleaseMemObject [ %s ]\n", err_to_str(err));
+    printf("[%lu] clReleaseMemObject [%s]\n", thread_id, err_to_str(err));
 
     err = clReleaseMemObject(block->out.mem);
-    printf("clReleaseMemObject [ %s ]\n", err_to_str(err));
+    printf("[%lu] clReleaseMemObject [%s]\n", thread_id, err_to_str(err));
 
     return NULL;
 }

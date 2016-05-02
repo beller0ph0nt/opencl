@@ -1,5 +1,5 @@
-avg: main.o context.o program.o kernel.o kernel_avg.o err.o free.o
-	$(LD) $(LDFLAGS) -o $@ main.o kernel.o err.o free.o -lOpenCL
+avg: main.o context.o program.o kernel.o kernel_avg.o err.o free.o file.o
+	$(LD) $(LDFLAGS) -o $@ $^ -lOpenCL -lpthread
 main.o: main.c
 	$(CC) -c $(CFLAGS) -o $@ main.c
 context.o: context.c context.h
@@ -14,5 +14,7 @@ err.o: err.c err.h
 	$(CC) -c $(CFLAGS) -o $@ err.c
 free.o: free.c free.h
 	$(CC) -c $(CFLAGS) -o $@ free.c
+file.o: file.c file.h
+	$(CC) -c $(CFLAGS) -o $@ $<
 clean:
 	rm -f *.o avg

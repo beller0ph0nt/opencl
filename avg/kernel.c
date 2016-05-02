@@ -7,6 +7,8 @@
 
 kernel_t* kernel_create(const context_t* context, const program_t* prog)
 {
+    printf("\nkernel creating...\n");
+
     kernel_t *kern = malloc(sizeof(*kern));
 
     if (kern != NULL)
@@ -29,6 +31,7 @@ kernel_t* kernel_create(const context_t* context, const program_t* prog)
                 kern->kernels[plat][dev] = clCreateKernel(prog->programs[plat][dev],
                                                           prog->prog_name,
                                                           &err);
+                printf("clCreateKernel \t\t\t [%s]\n", err_to_str(err));
                 if (err == CL_SUCCESS)
                 {
                      err = clGetKernelWorkGroupInfo(kern->kernels[plat][dev],
@@ -37,6 +40,7 @@ kernel_t* kernel_create(const context_t* context, const program_t* prog)
                                                     sizeof(kern->prop[plat][dev].pref_work_group_size_mult),
                                                     &kern->prop[plat][dev].pref_work_group_size_mult,
                                                     NULL);
+                     printf("clGetKernelWorkGroupInfo \t [%s]\n", err_to_str(err));
                      if (err != CL_SUCCESS)
                      {
                          ret = 6;
@@ -52,6 +56,7 @@ kernel_t* kernel_create(const context_t* context, const program_t* prog)
         if (ret != 0)
         {
             kernel_clear(context, kern);
+            kern = NULL;
         }
     }
 
@@ -60,6 +65,11 @@ kernel_t* kernel_create(const context_t* context, const program_t* prog)
 
 void kernel_clear(const context_t *context, kernel_t* kernel)
 {
+    if (context == NULL || kernel == NULL)
+        return;
+
+    printf("\nkernel clearing...\n");
+
     int i, j;
     cl_int err;
     for (i = 0; i < context->plat_count; i++)
@@ -67,7 +77,7 @@ void kernel_clear(const context_t *context, kernel_t* kernel)
         for (j = 0; j < context->dev_on_plat[i]; j++)
         {
             err = clReleaseKernel(kernel->kernels[i][j]);
-            printf("clReleaseKernel [ %s ]\n", err_to_str(err));
+            printf("clReleaseKernel \t\t [%s]\n", err_to_str(err));
         }
     }
 

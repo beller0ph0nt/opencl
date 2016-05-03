@@ -13,7 +13,8 @@ void kernel_avg_calc(const context_t* context,
 {
     pthread_t threads[context->total_dev_count];
 
-    double* cur_pointer = (double*) params->in;
+    double* cur_in_pointer = (double*) params->in;
+    double* cur_out_pointer = (double*) params->out;
     unsigned long int remain_len = params->in_len;
     unsigned long int block_len = params->in_len / context->total_dev_count;
 
@@ -34,30 +35,32 @@ void kernel_avg_calc(const context_t* context,
             if (cur_device_index != context->total_dev_count)
             {
                 blocks[plat][dev].left.len = block_len;
-                blocks[plat][dev].left.start = cur_pointer;
+                blocks[plat][dev].left.start = cur_in_pointer;
 
                 blocks[plat][dev].right.len = block_len;
-                blocks[plat][dev].right.start = cur_pointer + 1;
+                blocks[plat][dev].right.start = cur_in_pointer + 1;
 
                 blocks[plat][dev].out.len = block_len;
-                blocks[plat][dev].out.start = malloc(sizeof(*blocks[plat][dev].out.start) * blocks[plat][dev].out.len);
+                blocks[plat][dev].out.start = cur_out_pointer;
 
                 remain_len -= block_len;
-                cur_pointer += block_len;
+                cur_in_pointer += block_len;
+                cur_out_pointer += block_len;
             }
             else
             {
                 blocks[plat][dev].left.len = remain_len - 1;
-                blocks[plat][dev].left.start = cur_pointer;
+                blocks[plat][dev].left.start = cur_in_pointer;
 
                 blocks[plat][dev].right.len = remain_len - 1;
-                blocks[plat][dev].right.start = cur_pointer + 1;
+                blocks[plat][dev].right.start = cur_in_pointer + 1;
 
                 blocks[plat][dev].out.len = remain_len - 1;
-                blocks[plat][dev].out.start = malloc(sizeof(*blocks[plat][dev].out.start) * blocks[plat][dev].out.len);
+                blocks[plat][dev].out.start = cur_out_pointer;
 
                 remain_len = 0;
-                cur_pointer = NULL;
+                cur_in_pointer = NULL;
+                cur_out_pointer = NULL;
             }
 
             size_t work_items_count = blocks[plat][dev].out.len / V_LEN;
@@ -98,27 +101,7 @@ void kernel_avg_calc(const context_t* context,
         }
     }
 
-
-
-    cur_device_index = 0;
-    for (plat = 0; plat < context->plat_count; plat++)
-    {
-        for (dev = 0; dev < context->dev_on_plat[plat]; dev++, cur_device_index++)
-        {
-            printf("dev %u: ", cur_device_index);
-
-            unsigned long i;
-            for(i = 0; i < blocks[plat][dev].out.len; i++)
-            {
-                printf("%f ", blocks[plat][dev].out.start[i]);
-            }
-            printf("\n");
-
-            free_ptr_1d(blocks[plat][dev].out.start);
-        }
-    }
-
-    // освободить динамическую память
+    free_ptr_2d((void**) blocks, context->plat_count);
 }
 
 void* avg_thread_func(void* arg)

@@ -756,6 +756,12 @@ int main()
 
                 kernel_avg_calc(context, kern, &params);
 
+                    for (i = 0; i < DATA_SIZE - 1; i++)
+                    {
+                        printf("%f ", params.out[i]);
+                    }
+                    printf("\n");
+
                 kernel_clear(context, kern);
             }
 

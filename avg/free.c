@@ -14,7 +14,6 @@ void free_ptr_2d(void** p, const unsigned long int len_2d)
         }
 
         free(p);
-        p = NULL;
     }
 }
 
@@ -23,6 +22,5 @@ void free_ptr_1d(void* p)
     if (p != NULL)
     {
         free(p);
-        p = NULL;
     }
 }

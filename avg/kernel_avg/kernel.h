@@ -5,8 +5,8 @@
 
 #include <CL/cl.h>
 
-#include "kernel.h"
-#include "context.h"
+#include "../kernel.h"
+#include "../context.h"
 
 struct avg_par_info_t
 {

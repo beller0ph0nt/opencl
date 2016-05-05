@@ -1,19 +1,11 @@
-#ifndef __PARAMS_H
-#define __PARAMS_H
+#ifndef __AVG_PARAMS_H
+#define __AVG_PARAMS_H
 
-#define V_LEN               16
+#include "../params.h"
 
-#define FLOAT(x)            XFLOAT(x)
-#define XFLOAT(x)           float ## x
-
-#define REAL(x)             XREAL(x)
-#define XREAL(x)            double ## x
+#define AVG_V_LEN           16
 
 #define AVG_PROG_NAME       avg
 #define AVG_PROG_NAME_STR   TO_STR(AVG_PROG_NAME)
 
-#define TO_STR(s)           XTO_STR(s)
-#define XTO_STR(s)          #s
-
-
-#endif // __PARAMS_H
+#endif // __AVG_PARAMS_H

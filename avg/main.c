@@ -13,7 +13,7 @@
 #include "kernel.h"
 #include "context.h"
 #include "program.h"
-#include "kernel_avg.h"
+#include "kernel_avg/kernel.h"
 
 //#define CLOCK_ID        CLOCK_REALTIME  // CLOCK_PROCESS_CPUTIME_ID    //
 //#define KERNELS_COUNT   1
@@ -742,7 +742,7 @@ int main()
     context_t* context = context_create(CL_DEVICE_TYPE_GPU);
     if (context != NULL)
     {
-        program_t* prog = program_create_src(context, "average.cl", "avg");
+        program_t* prog = program_create_src(context, "kernel/avg.cl", "avg");
         if (prog != NULL)
         {
             kernel_t* kern = kernel_create(context, prog);

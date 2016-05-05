@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#include "err.h"
-#include "free.h"
+#include "../err.h"
+#include "../free.h"
+
 #include "params.h"
-#include "kernel_avg.h"
+#include "kernel.h"
 
 void kernel_avg_calc(const context_t* context,
                      const kernel_t* kernel,
@@ -63,8 +64,8 @@ void kernel_avg_calc(const context_t* context,
                 cur_out_pointer = NULL;
             }
 
-            size_t work_items_count = blocks[plat][dev].out.len / V_LEN;
-            if (blocks[plat][dev].out.len % V_LEN != 0)
+            size_t work_items_count = blocks[plat][dev].out.len / AVG_V_LEN;
+            if (blocks[plat][dev].out.len % AVG_V_LEN != 0)
                 work_items_count++;
 
             size_t work_groups_count = work_items_count / kernel->prop[plat][dev].pref_work_group_size_mult;

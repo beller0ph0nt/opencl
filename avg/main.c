@@ -739,10 +739,10 @@ int main()
     }
 
 
-    context_t* context = context_create(CL_DEVICE_TYPE_ALL);
+    context_t* context = context_create(CL_DEVICE_TYPE_GPU);
     if (context != NULL)
     {
-        program_t* prog = program_create_src(context, "kernel_avg/avg.cl", "avg");
+        program_t* prog = program_create_src(context, "kernel_avg/avg.cl", "avg", "-I ./kernel_avg/");
         if (prog != NULL)
         {
             kernel_t* kern = kernel_create(context, prog);

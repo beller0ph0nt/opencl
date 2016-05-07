@@ -9,7 +9,8 @@
 
 program_t* program_create_src(const context_t* context,
                               const char* src_path,
-                              const char *prog_name)
+                              const char* prog_name,
+                              const char* build_options)
 {
     printf("\nprogram src creating...\n");
 
@@ -54,7 +55,7 @@ program_t* program_create_src(const context_t* context,
                             err = clBuildProgram(prog->programs[plat][dev],
                                                  0,
                                                  NULL,
-                                                 "-I ./kernel_avg/", //BUILD_OPTIONS,
+                                                 build_options,
                                                  NULL,
                                                  NULL);
                             printf("clBuildProgram \t\t\t [%s]\n", err_to_str(err));

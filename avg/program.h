@@ -15,7 +15,8 @@ typedef struct
 
 program_t* program_create_src(const context_t* context,
                               const char* src_path,
-                              const char* prog_name);
+                              const char* prog_name,
+                              const char* build_options);
 
 program_t* program_create_bin(const context_t* context,
                               const char* bin_path,

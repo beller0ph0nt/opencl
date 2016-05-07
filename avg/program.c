@@ -14,6 +14,7 @@ program_t* program_create_src(const context_t* context,
     printf("\nprogram src creating...\n");
 
     program_t* prog = malloc(sizeof(*prog));
+    memset(prog, 0, sizeof(*prog));
 
     if (prog != NULL)
     {
@@ -53,7 +54,7 @@ program_t* program_create_src(const context_t* context,
                             err = clBuildProgram(prog->programs[plat][dev],
                                                  0,
                                                  NULL,
-                                                 "-I ./", //BUILD_OPTIONS,
+                                                 "-I ./kernel_avg/", //BUILD_OPTIONS,
                                                  NULL,
                                                  NULL);
                             printf("clBuildProgram \t\t\t [%s]\n", err_to_str(err));
@@ -109,7 +110,7 @@ program_t* program_create_bin(const context_t* context,
     return NULL;
 }
 
-void program_clear(const context_t *context, program_t* prog)
+void program_clear(const context_t* context, program_t* prog)
 {
     if (context == NULL || prog == NULL)
         return;
@@ -122,8 +123,11 @@ void program_clear(const context_t *context, program_t* prog)
     {
         for (j = 0; j < context->dev_on_plat[i]; j++)
         {
-            err = clReleaseProgram(prog->programs[i][j]);
-            printf("clReleaseProgram \t [%s]\n", err_to_str(err));
+            if (prog->programs != NULL)
+            {
+                err = clReleaseProgram(prog->programs[i][j]);
+                printf("clReleaseProgram \t [%s]\n", err_to_str(err));
+            }
         }
     }
 

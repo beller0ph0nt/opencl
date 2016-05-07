@@ -30,4 +30,5 @@ free.o: free.c free.h
 file.o: file.c file.h
 	$(CC) -c $(CFLAGS) -o $@ $<
 clean:
+	$(MAKE) -C kernel_avg clean
 	rm -f *.o avg

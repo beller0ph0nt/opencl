@@ -1,4 +1,4 @@
-#include "avg_params.h"
+#include "params.h"
 
 __kernel void AVG_PROG_NAME(__global REAL(AVG_V_LEN) *left,
                             __global REAL(AVG_V_LEN) *right,

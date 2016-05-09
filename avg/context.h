@@ -5,18 +5,17 @@
 
 #include <CL/cl.h>
 
-//typedef struct
-//{
-//    size_t  max_param_size;
-//    int ratio;
-//} dev_prop_t;
+typedef struct
+{
+    cl_uint  max_comp_units;
+} dev_prop_t;
 
 typedef struct
 {
     cl_uint total_dev_count;
     cl_uint* dev_on_plat;
     cl_device_id** dev;
-    //dev_prop_t** dev_prop;
+    dev_prop_t** dev_prop;
 
     cl_uint plat_count;
     cl_platform_id* plat;
@@ -25,6 +24,8 @@ typedef struct
     cl_command_queue** cmd;
 
     cl_device_type dev_type;
+
+    cl_uint  total_comp_units;
 } context_t;
 
 context_t* context_create(cl_device_type dev_type);

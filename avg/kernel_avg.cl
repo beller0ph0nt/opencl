@@ -1,4 +1,4 @@
-#include "params.h"
+#include "kernel_avg_params.h"
 
 __kernel void AVG_PROG_NAME(__global DOUBLE(AVG_V_LEN) *left,
                             __global DOUBLE(AVG_V_LEN) *right,

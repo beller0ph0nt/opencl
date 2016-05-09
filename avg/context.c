@@ -17,6 +17,7 @@ context_t* context_create(cl_device_type dev_type)
         cl_int err;
 
         context->dev_type = dev_type;
+        context->total_comp_units = 0;
 
         err = clGetPlatformIDs(0, NULL, &context->plat_count);
         printf("clGetPlatformIDs \t [%s]\n", err_to_str(err));
@@ -33,7 +34,7 @@ context_t* context_create(cl_device_type dev_type)
                 context->dev_on_plat = malloc(sizeof(*context->dev_on_plat) * context->plat_count);
 
                 context->dev = malloc(sizeof(*context->dev) * context->plat_count);
-//                context->dev_prop = malloc(sizeof(*context->dev_prop) * context->plat_count);
+                context->dev_prop = malloc(sizeof(*context->dev_prop) * context->plat_count);
                 context->contexts = malloc(sizeof(*context->contexts) * context->plat_count);
                 context->cmd = malloc(sizeof(*context->cmd) * context->plat_count);
 
@@ -54,7 +55,7 @@ context_t* context_create(cl_device_type dev_type)
                         context->total_dev_count += context->dev_on_plat[p];
 
                         context->dev[p] = malloc(sizeof(**context->dev) * context->dev_on_plat[p]);
-//                       context->dev_prop[p] = malloc(sizeof(**context->dev_prop) * context->dev_on_plat[p]);
+                        context->dev_prop[p] = malloc(sizeof(**context->dev_prop) * context->dev_on_plat[p]);
                         context->contexts[p] = malloc(sizeof(**context->contexts) * context->dev_on_plat[p]);
                         context->cmd[p] = malloc(sizeof(**context->cmd) * context->dev_on_plat[p]);
 
@@ -75,15 +76,16 @@ context_t* context_create(cl_device_type dev_type)
                             int d;
                             for (d = 0; d < context->dev_on_plat[p]; d++)
                             {
-//                                 !!! добавить обработку ошибок !!!
-//                                clGetDeviceInfo(devices[i][j],
-//                                               CL_DEVICE_MAX_PARAMETER_SIZE,
-//                                               sizeof(devices_prop[i][j].max_param_size),
-//                                               &devices_prop[i][j].max_param_size,
-//                                               NULL);
+                                context->dev_prop[p][d].max_comp_units = 0;
+                                err = clGetDeviceInfo(context->dev[p][d],
+                                                      CL_DEVICE_MAX_COMPUTE_UNITS,
+                                                      sizeof(context->dev_prop[p][d].max_comp_units),
+                                                      &context->dev_prop[p][d].max_comp_units,
+                                                      NULL);
+                                printf("clGetDeviceInfo \t [%s]\n", err_to_str(err));
+                                printf("CL_DEVICE_MAX_COMPUTE_UNITS: %d\n", context->dev_prop[p][d].max_comp_units);
 
-//                                 !!! на базе считанных параметров необходимо вычислить коэффициент от 1 до 100 !!!
-//                                 !!! пропорционально данному коэффициенту модули будут разбивать данные для параллельного вычисления !!!
+                                context->total_comp_units += context->dev_prop[p][d].max_comp_units;
 #ifdef DEBUG
                                 printf("\nplat: %d\t dev: %d\n", p, d);
 #endif
@@ -168,7 +170,7 @@ void context_clear(context_t* context)
 
     free_ptr_2d((void**) context->cmd, context->plat_count);
     free_ptr_2d((void**) context->contexts, context->plat_count);
-//    free_ptr_2d((void**) context->dev_prop, context->plat_count);
+    free_ptr_2d((void**) context->dev_prop, context->plat_count);
     free_ptr_2d((void**) context->dev, context->plat_count);
 
     free_ptr_1d(context->dev_on_plat);

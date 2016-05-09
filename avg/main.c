@@ -13,7 +13,7 @@
 #include "kernel.h"
 #include "context.h"
 #include "program.h"
-#include "kernel_avg/kernel.h"
+#include "kernel_avg.h"
 
 //#define CLOCK_ID        CLOCK_REALTIME  // CLOCK_PROCESS_CPUTIME_ID    //
 //#define KERNELS_COUNT   1
@@ -729,8 +729,8 @@ void cpu_test()
 
 int main()
 {
-    double *in_data = malloc(sizeof(*in_data) * DATA_SIZE);
-    double *out_data = malloc(sizeof(*out_data) * (DATA_SIZE - 1));
+    double* in_data = malloc(sizeof(*in_data) * DATA_SIZE);
+    double* out_data = malloc(sizeof(*out_data) * (DATA_SIZE - 1));
 
     long int i;
     for (i = 0; i < DATA_SIZE; i++)
@@ -739,7 +739,7 @@ int main()
     }
 
 
-    context_t* context = context_create(CL_DEVICE_TYPE_GPU);
+    context_t* context = context_create(CL_DEVICE_TYPE_ALL);
     if (context != NULL)
     {
         program_t* prog = program_create_src(context, "kernel_avg/avg.cl", "avg", "-I ./kernel_avg/");
@@ -756,11 +756,11 @@ int main()
 
                 kernel_avg_calc(context, kern, &params);
 
-                    for (i = 0; i < DATA_SIZE - 1; i++)
-                    {
-                        printf("%f ", params.out[i]);
-                    }
-                    printf("\n");
+//                for (i = 0; i < DATA_SIZE - 1; i++)
+//                {
+//                    printf("%f ", params.out[i]);
+//                }
+//                printf("\n");
 
                 kernel_clear(context, kern);
             }

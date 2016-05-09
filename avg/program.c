@@ -103,6 +103,23 @@ program_t* program_create_src(const context_t* context,
     return prog;
 }
 
+/*
+
+    program_src2bin(src_path)
+
+    program = clCreateProgramWithSource(clctx, 1, &dumbkernelsource, NULL, &errcode);
+    errcode = clBuildProgram(program, env->num_devices, env->device, NULL, NULL, NULL);
+    int number_of_binaries;
+    char **binary;
+    int *binary_sizes;
+    errcode = clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES, NULL, 0, &number_of_binaries);
+    binary_sizes = new int[number_of_binaries];
+    binary = new char*[number_of_binaries];
+    errcode = clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES, binary_sizes, number_of_binaries*sizeof(int), &number_of_binaries);
+    for (int i = 0; i < number_of_binaries; ++i) binary[i] = new char[binary_sizes[i]];
+    errcode = clGetProgramInfo(program, CL_PROGRAM_BINARIES, binary, number_of_binaries*sizeof(char*), &number_of_binaries);
+ */
+
 program_t* program_create_bin(const context_t* context,
                               const char* bin_path,
                               const char *prog_name)

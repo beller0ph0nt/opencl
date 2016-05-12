@@ -168,17 +168,25 @@ void context_clear(context_t* context)
         }
     }
 
+    printf("stage 1\n");
     free_ptr_2d((void**) context->cmd, context->plat_count);
+    printf("stage 2\n");
     free_ptr_2d((void**) context->contexts, context->plat_count);
+    printf("stage 3\n");
     free_ptr_2d((void**) context->dev_prop, context->plat_count);
+    printf("stage 4\n");
     free_ptr_2d((void**) context->dev, context->plat_count);
 
+    printf("stage 5\n");
     free_ptr_1d(context->dev_on_plat);
+    printf("stage 6\n");
     free_ptr_1d(context->plat);
 
     context->plat_count = 0;
     context->total_dev_count = 0;
     context->dev_type = CL_DEVICE_TYPE_GPU;
 
+    printf("stage 7\n");
     free_ptr_1d(context);
+    printf("stage end\n");
 }

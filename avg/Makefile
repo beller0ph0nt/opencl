@@ -12,7 +12,7 @@ OBJ += file.o
 OBJ += kernel_avg.o
 
 avg: $(OBJ)
-	$(LD) $(LDFLAGS) -o $@ $^ -lOpenCL -lpthread
+	$(LD) $(LDFLAGS) -o $@ $^ -lOpenCL -lpthread -lm
 main.o: main.c
 	$(CC) -c $(CFLAGS) -o $@ $<
 context.o: context.c context.h

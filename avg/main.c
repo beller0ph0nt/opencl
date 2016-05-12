@@ -19,7 +19,8 @@
 //#define KERNELS_COUNT   1
 
 //#define DATA_SIZE       16384     // V_LEN * max_param_size
-#define DATA_SIZE       10000000
+//#define DATA_SIZE       10000000
+#define DATA_SIZE       10
 
 //#define KERNEL_SRC      "average.cl"
 //#define BUILD_OPTIONS   "-I ./"
@@ -756,11 +757,11 @@ int main()
 
                 kernel_avg_calc(context, kern, &params);
 
-//                for (i = 0; i < DATA_SIZE - 1; i++)
-//                {
-//                    printf("%f ", params.out[i]);
-//                }
-//                printf("\n");
+                for (i = 0; i < DATA_SIZE - 1; i++)
+                {
+                    printf("%f ", params.out[i]);
+                }
+                printf("\n");
 
                 kernel_clear(context, kern);
             }
@@ -770,6 +771,10 @@ int main()
 
         context_clear(context);
     }
+
+//    printf("free\n");
+    free(in_data);
+    free(out_data);
 
 
 

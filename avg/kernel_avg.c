@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -11,16 +12,51 @@ void kernel_avg_calc(const context_t* context,
                      const kernel_t* kernel,
                      struct avg_params_t* params)
 {
-    pthread_t threads[context->total_dev_count];
+    if (params->in_len < 2)
+        return;
 
+    int single_thread_calc = 0;
+    if (params->in_len < context->total_comp_units * MIN_BLOCK_LEN)
+        single_thread_calc = 1;
+
+    int plat = 0, dev = 0;
+    unsigned long int block_len;
     double* cur_in_pointer = (double*) params->in;
     double* cur_out_pointer = (double*) params->out;
     unsigned long int remain_len = params->in_len;
-    unsigned long int block_len = params->in_len / context->total_dev_count;
+    //unsigned long int block_len = params->in_len / context->total_dev_count;
 
+    if (single_thread_calc)
+    {
+        printf("run calc in nonasync mode\n");
+
+        struct avg_block_t block;
+        block.context = context->contexts[plat][dev];
+        block.kernel = kernel->kernels[plat][dev];
+        block.cmd = context->cmd[plat][dev];
+
+        block_len = remain_len - 1;
+
+        block.left.len = block_len;
+        block.left.start = cur_in_pointer;
+
+        block.right.len = block_len;
+        block.right.start = cur_in_pointer + 1;
+
+        block.out.len = block_len;
+        block.out.start = cur_out_pointer;
+
+        //avg_thread_func(&block);
+
+        return;
+    }
+
+    pthread_t threads[context->total_dev_count];
+
+    double multiplier = 0.0;
     struct avg_block_t** blocks = malloc(sizeof(*blocks) * context->plat_count);
 
-    int plat, dev;
+
     cl_uint cur_device_index = 1;
     for (plat = 0; plat < context->plat_count; plat++)
     {
@@ -34,6 +70,12 @@ void kernel_avg_calc(const context_t* context,
 
             if (cur_device_index != context->total_dev_count)
             {
+                multiplier = (double) context->dev_prop[plat][dev].max_comp_units / context->total_comp_units;
+                block_len = (unsigned long int) ceil(params->in_len * multiplier);
+
+                printf("multiplier: %f\n", multiplier);
+                printf("block len: %lu\n", block_len);
+
                 blocks[plat][dev].left.len = block_len;
                 blocks[plat][dev].left.start = cur_in_pointer;
 
@@ -49,13 +91,17 @@ void kernel_avg_calc(const context_t* context,
             }
             else
             {
-                blocks[plat][dev].left.len = remain_len - 1;
+                block_len = remain_len - 1;
+
+                printf("block len: %lu\n", block_len);
+
+                blocks[plat][dev].left.len = block_len;
                 blocks[plat][dev].left.start = cur_in_pointer;
 
-                blocks[plat][dev].right.len = remain_len - 1;
+                blocks[plat][dev].right.len = block_len;
                 blocks[plat][dev].right.start = cur_in_pointer + 1;
 
-                blocks[plat][dev].out.len = remain_len - 1;
+                blocks[plat][dev].out.len = block_len;
                 blocks[plat][dev].out.start = cur_out_pointer;
 
                 remain_len = 0;
@@ -105,10 +151,13 @@ void kernel_avg_calc(const context_t* context,
 }
 
 void* avg_thread_func(void* arg)
-{
+{    
     cl_int err;
     pthread_t thread_id = pthread_self();
     struct avg_block_t* block = (struct avg_block_t*) arg;
+
+//    if (block->left.len == 0 || block->right.len == 0)
+//        return NULL;
 
     block->left.mem = clCreateBuffer(block->context,
                                      CL_MEM_READ_ONLY,

@@ -8,6 +8,8 @@
 #include "kernel.h"
 #include "context.h"
 
+#define MIN_BLOCK_LEN 2
+
 struct avg_par_info_t
 {
     double* start;

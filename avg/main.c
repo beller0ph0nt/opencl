@@ -19,8 +19,8 @@
 //#define KERNELS_COUNT   1
 
 //#define DATA_SIZE       16384     // V_LEN * max_param_size
-//#define DATA_SIZE       10000000
-#define DATA_SIZE       10
+#define DATA_SIZE       10000000
+//#define DATA_SIZE       5
 
 //#define KERNEL_SRC      "average.cl"
 //#define BUILD_OPTIONS   "-I ./"
@@ -743,7 +743,7 @@ int main()
     context_t* context = context_create(CL_DEVICE_TYPE_ALL);
     if (context != NULL)
     {
-        program_t* prog = program_create_src(context, "kernel_avg/avg.cl", "avg", "-I ./kernel_avg/");
+        program_t* prog = program_create_src(context, "kernel_avg.cl", "avg", "-I ./");
         if (prog != NULL)
         {
             kernel_t* kern = kernel_create(context, prog);
@@ -757,11 +757,11 @@ int main()
 
                 kernel_avg_calc(context, kern, &params);
 
-                for (i = 0; i < DATA_SIZE - 1; i++)
-                {
-                    printf("%f ", params.out[i]);
-                }
-                printf("\n");
+//                for (i = 0; i < DATA_SIZE - 1; i++)
+//                {
+//                    printf("%f ", params.out[i]);
+//                }
+//                printf("\n");
 
                 kernel_clear(context, kern);
             }

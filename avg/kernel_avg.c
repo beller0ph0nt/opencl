@@ -24,10 +24,16 @@ void kernel_avg_calc(const context_t* context,
     double* cur_in_pointer = (double*) params->in;
     double* cur_out_pointer = (double*) params->out;
     unsigned long int remain_len = params->in_len;
-    //unsigned long int block_len = params->in_len / context->total_dev_count;
+
+    pthread_t threads[context->total_dev_count];
 
     if (single_thread_calc)
     {
+        /*
+         * Почему-то при выставлении длинны массива в 10 элементов
+         * ОС полностью зависает и не подает признаков жизни.
+         */
+
         printf("run calc in nonasync mode\n");
 
         struct avg_block_t block;
@@ -46,12 +52,16 @@ void kernel_avg_calc(const context_t* context,
         block.out.len = block_len;
         block.out.start = cur_out_pointer;
 
-        //avg_thread_func(&block);
+        int i;
+        for (i = 0; i < block.left.len; i++)
+        {
+            block.out.start[i] = (block.left.start[i] + block.right.start[i]) / 2.0;
+        }
 
         return;
     }
 
-    pthread_t threads[context->total_dev_count];
+
 
     double multiplier = 0.0;
     struct avg_block_t** blocks = malloc(sizeof(*blocks) * context->plat_count);
@@ -154,10 +164,13 @@ void* avg_thread_func(void* arg)
 {    
     cl_int err;
     pthread_t thread_id = pthread_self();
+
     struct avg_block_t* block = (struct avg_block_t*) arg;
 
 //    if (block->left.len == 0 || block->right.len == 0)
 //        return NULL;
+
+    printf("start creating buffer\n");
 
     block->left.mem = clCreateBuffer(block->context,
                                      CL_MEM_READ_ONLY,

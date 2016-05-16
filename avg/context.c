@@ -85,6 +85,26 @@ context_t* context_create(cl_device_type dev_type)
                                 printf("clGetDeviceInfo \t [%s]\n", err_to_str(err));
                                 printf("CL_DEVICE_MAX_COMPUTE_UNITS: %d\n", context->dev_prop[p][d].max_comp_units);
 
+                                context->dev_prop[p][d].glob_mem_size = 0;
+                                err = clGetDeviceInfo(context->dev[p][d],
+                                                      CL_DEVICE_GLOBAL_MEM_SIZE,
+                                                      sizeof(context->dev_prop[p][d].glob_mem_size),
+                                                      &context->dev_prop[p][d].glob_mem_size,
+                                                      NULL);
+                                printf("clGetDeviceInfo \t [%s]\n", err_to_str(err));
+                                printf("CL_DEVICE_GLOBAL_MEM_SIZE: %llu\n", context->dev_prop[p][d].glob_mem_size);
+
+
+                                context->dev_prop[p][d].max_mem_alloc_size = 0;
+                                err = clGetDeviceInfo(context->dev[p][d],
+                                                      CL_DEVICE_MAX_MEM_ALLOC_SIZE,
+                                                      sizeof(context->dev_prop[p][d].max_mem_alloc_size),
+                                                      &context->dev_prop[p][d].max_mem_alloc_size,
+                                                      NULL);
+                                printf("clGetDeviceInfo \t [%s]\n", err_to_str(err));
+                                printf("CL_DEVICE_MAX_MEM_ALLOC_SIZE: %llu\n", context->dev_prop[p][d].max_mem_alloc_size);
+
+
                                 context->total_comp_units += context->dev_prop[p][d].max_comp_units;
 #ifdef DEBUG
                                 printf("\nplat: %d\t dev: %d\n", p, d);

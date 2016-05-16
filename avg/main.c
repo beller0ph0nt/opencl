@@ -15,11 +15,14 @@
 #include "program.h"
 #include "kernel_avg.h"
 
-//#define CLOCK_ID        CLOCK_REALTIME  // CLOCK_PROCESS_CPUTIME_ID    //
+#define CLOCK_ID        CLOCK_REALTIME  // CLOCK_PROCESS_CPUTIME_ID    //
 //#define KERNELS_COUNT   1
 
 //#define DATA_SIZE       16384     // V_LEN * max_param_size
-#define DATA_SIZE       10000000
+
+//#define DATA_SIZE       60000000
+#define DATA_SIZE         (67108864)
+
 //#define DATA_SIZE       5
 
 //#define KERNEL_SRC      "average.cl"
@@ -728,6 +731,8 @@ void cpu_test()
 
 */
 
+
+
 int main()
 {
     double* in_data = malloc(sizeof(*in_data) * DATA_SIZE);
@@ -739,8 +744,11 @@ int main()
         in_data[i] = i;
     }
 
+    struct timespec start, stop; //, d;
+    long dsec, dnsec;
 
-    context_t* context = context_create(CL_DEVICE_TYPE_ALL);
+
+    context_t* context = context_create(CL_DEVICE_TYPE_GPU);
     if (context != NULL)
     {
         program_t* prog = program_create_src(context, "kernel_avg.cl", "avg", "-I ./");
@@ -755,7 +763,20 @@ int main()
                 params.out = out_data;
                 params.out_len = DATA_SIZE - 1;
 
+                clock_gettime(CLOCK_ID, &start);
+
                 kernel_avg_calc(context, kern, &params);
+
+                clock_gettime(CLOCK_ID, &stop);
+                dsec = stop.tv_sec - start.tv_sec;
+                dnsec = stop.tv_nsec - start.tv_nsec;
+
+                //printf("\ntime: { sec: %ld, nsec: %ld }\n\n", dsec, dnsec);
+                //printf("\ntime: %.9f sec { sec: %ld, nsec: %ld }\n\n", diff / 1000000000.0, dsec, dnsec);
+
+                unsigned long diff = 1000000000 * dsec + dnsec;
+                printf("\n\ntime: %.9f sec\t\n\n", diff / 1000000000.0);
+
 
 //                for (i = 0; i < DATA_SIZE - 1; i++)
 //                {

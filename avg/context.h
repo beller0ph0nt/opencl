@@ -8,6 +8,8 @@
 typedef struct
 {
     cl_uint  max_comp_units;
+    cl_ulong glob_mem_size;
+    cl_ulong max_mem_alloc_size;
 } dev_prop_t;
 
 typedef struct

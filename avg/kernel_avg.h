@@ -38,6 +38,8 @@ struct avg_time_info_t
 
 struct avg_block_t
 {
+    struct avg_par_info_t orig;
+
     struct avg_par_info_t left;
     struct avg_par_info_t right;
     struct avg_par_info_t out;

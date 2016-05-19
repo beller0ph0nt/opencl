@@ -64,4 +64,6 @@ void kernel_avg_calc(const context_t* context,
 
 void* avg_thread_func(void* arg);
 
+void* cpu_avg_thread_func(void* arg);
+
 #endif // __KERNEL_AVG_H

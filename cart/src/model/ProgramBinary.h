@@ -6,7 +6,7 @@
 class ProgramBinary : public Program
 {
 public:
-    ProgramBinary(MainContext *context, const string file_path):Program(context)
+    ProgramBinary(Context *context, const string file_path):Program(context)
     {
         try
         {

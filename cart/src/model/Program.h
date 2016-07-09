@@ -10,19 +10,17 @@
 #include <sstream>
 using namespace std;
 
-#include "MainContext.h"
+#include "Context.h"
 
 #define BUILD_OPTIONS   "-I ./"
-
-typedef cl_program cl_program_t;
 
 class Program
 {
 protected:
-    cl_program_t **program = NULL;
-    MainContext *context = NULL;
+    cl_program **program = NULL;
+    Context *context = NULL;
 public:
-    Program(MainContext *context):context(context) {}
+    Program(Context *context):context(context) {}
     ~Program() {}
 protected:
     virtual void Create(const string file_path) = 0;

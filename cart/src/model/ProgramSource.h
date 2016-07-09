@@ -6,7 +6,7 @@
 class ProgramSource : public Program
 {
 public:
-    ProgramSource(MainContext *context, const string file_path):Program(context)
+    ProgramSource(Context *context, const string file_path):Program(context)
     {
         try
         {

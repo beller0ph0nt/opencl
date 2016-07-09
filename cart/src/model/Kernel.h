@@ -7,20 +7,19 @@
 
 #include "Program.h"
 
-typedef cl_program cl_program_t;
-typedef cl_kernel cl_kernel_t;
-
-struct KernelCalcParam {
+struct KernelCalcParam
+{
 };
 
-typedef struct {
+typedef struct
+{
     size_t  pref_work_group_size_mult;
 } KernelProp;
 
 class Kernel
 {
 private:
-    cl_kernel_t **kernel = NULL;
+    cl_kernel **kernel = NULL;
     KernelProp **prop = NULL;
     Program *prog;
 public:

@@ -3,6 +3,7 @@ Import('env')
 env = env.Clone()
 
 env['LIBS'] = ['OpenCL']
+env['LIBPATH'] = ['/opt/AMDAPPSDK-3.0/lib/x86_64']
 
 #['controller', 'model', 'view']
 obj = SConscript(dirs = ['model'], exports = 'env')

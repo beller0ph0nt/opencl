@@ -6,15 +6,15 @@ void ProgramSource::Create(const string file_path)
 {
     string src;
     ReadFile(file_path, &src);
-    program = new cl_program_t*[context->plat_count];
+    program = new cl_program*[context->plat_count];
 
-    for (cl_uint_t p = 0; p < context->plat_count; p++)
+    for (cl_uint p = 0; p < context->plat_count; p++)
     {
-        program[p] = new cl_program_t[context->dev_count[p]];
+        program[p] = new cl_program[context->dev_count[p]];
 
-        for (cl_uint_t d = 0; d < context->dev_count[p]; d++)
+        for (cl_uint d = 0; d < context->dev_count[p]; d++)
         {
-            cl_int_t err;
+            cl_int err;
             program[p][d] = clCreateProgramWithSource(context->context[p][d],
                                                       1,
                                                       (const char **) src.c_str(),  // !!! возможно надо будет заводить временную переменную для корректного преобразования !!!

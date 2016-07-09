@@ -778,11 +778,11 @@ int main()
                 printf("\n\ntime: %.9f sec\t\n\n", diff / 1000000000.0);
 
 
-//                for (i = 0; i < DATA_SIZE - 1; i++)
-//                {
-//                    printf("%f ", params.out[i]);
-//                }
-//                printf("\n");
+                for (i = 0; i < DATA_SIZE - 1; i++)
+                {
+                    printf("%f ", params.out[i]);
+                }
+                printf("\n");
 
                 kernel_clear(context, kern);
             }

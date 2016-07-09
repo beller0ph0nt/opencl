@@ -1,19 +1,19 @@
-#include "MainContext.h"
+#include "Context.h"
 
-MainContext::MainContext(const cl_device_type_t dev_type)
+Context::Context(const cl_device_type dev_type)
 {
     if (clGetPlatformIDs(0, NULL, &plat_count) == CL_SUCCESS)
     {
-        plat = new cl_platform_id_t[plat_count];
+        plat = new cl_platform_id[plat_count];
 
         if (clGetPlatformIDs(plat_count, plat, NULL) == CL_SUCCESS)
         {
-            dev_count = new cl_uint_t[plat_count];
-            dev = new cl_device_id_t*[plat_count];
-            context = new cl_context_t*[plat_count];
-            cmd = new cl_command_queue_t*[plat_count];
+            dev_count = new cl_uint[plat_count];
+            dev = new cl_device_id*[plat_count];
+            context = new cl_context*[plat_count];
+            cmd = new cl_command_queue*[plat_count];
 
-            for (cl_uint_t p = 0; p < plat_count; p++)
+            for (cl_uint p = 0; p < plat_count; p++)
             {
                 if (clGetDeviceIDs(plat[p],
                                    dev_type,
@@ -22,9 +22,9 @@ MainContext::MainContext(const cl_device_type_t dev_type)
                                    &dev_count[p]) == CL_SUCCESS)
                 {
                     total_dev_count += dev_count[p];
-                    dev[p] = new cl_device_id_t[dev_count[p]];
-                    context[p] = new cl_context_t[dev_count[p]];
-                    cmd[p] = new cl_command_queue_t[dev_count[p]];
+                    dev[p] = new cl_device_id[dev_count[p]];
+                    context[p] = new cl_context[dev_count[p]];
+                    cmd[p] = new cl_command_queue[dev_count[p]];
 
                     if (clGetDeviceIDs(plat[p],
                                        dev_type,
@@ -32,15 +32,15 @@ MainContext::MainContext(const cl_device_type_t dev_type)
                                        dev[p],
                                        NULL) == CL_SUCCESS)
                     {
-                        cl_context_properties_t properties[3] = {
+                        cl_context_properties properties[3] = {
                             CL_CONTEXT_PLATFORM,
-                            (cl_context_properties_t) plat[p],
+                            (cl_context_properties) plat[p],
                             0
                         };
 
-                        for (cl_uint_t d = 0; d < dev_count[p]; d++)
+                        for (cl_uint d = 0; d < dev_count[p]; d++)
                         {
-                            cl_int_t err;
+                            cl_int err;
                             context[p][d] = clCreateContext(properties,
                                                             1,
                                                             &dev[p][d],
@@ -86,14 +86,13 @@ MainContext::MainContext(const cl_device_type_t dev_type)
     }
 }
 
-MainContext::~MainContext()
+Context::~Context()
 {
-
-    for (cl_uint_t p = 0; p < plat_count; p++)
+    for (cl_uint p = 0; p < plat_count; p++)
     {
-        for (cl_uint_t d = 0; d < dev_count[p]; d++)
+        for (cl_uint d = 0; d < dev_count[p]; d++)
         {
-            cl_int_t err;
+            cl_int err;
             err = clReleaseCommandQueue(cmd[p][d]);
             if (err != CL_SUCCESS)
             {

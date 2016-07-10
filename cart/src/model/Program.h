@@ -19,10 +19,10 @@ class Program
 protected:
     cl_program **program = NULL;
     Context *context = NULL;
-public:
+
     Program(Context *context):context(context) {}
     ~Program() {}
-protected:
+
     virtual void Create(const string file_path) = 0;
     void ReadFile(const string file_path, string *src);
 };

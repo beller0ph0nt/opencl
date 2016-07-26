@@ -1,15 +1,21 @@
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
+using namespace std;
+
 #include "Program.h"
 
-void Program::ReadFile(const string file_path, string *src)
+string Program::ReadFile(const string file_path)
 {
     ifstream file(file_path);
 
-    if (file.is_open())
-    {
-        stringstream buffer;
-        buffer << file.rdbuf();
-        *src = buffer.str();
-        buffer.clear();
-    }
+    if (!file.is_open())
+        throw runtime_error("can't open file \"" + file_path + "\"");
+
+    stringstream buffer;
+    buffer << file.rdbuf();
+    string src = buffer.str();
+    buffer.clear();
     file.close();
 }

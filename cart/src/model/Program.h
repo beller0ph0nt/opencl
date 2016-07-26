@@ -6,8 +6,6 @@
 #include <CL/cl.h>
 
 #include <string>
-#include <fstream>
-#include <sstream>
 using namespace std;
 
 #include "Context.h"
@@ -17,14 +15,11 @@ using namespace std;
 class Program
 {
 protected:
-    cl_program **program = NULL;
-    Context *context = NULL;
+    cl_program **_program = NULL;
+    Context *_context = NULL;
 
-    Program(Context *context):context(context) {}
-    ~Program() {}
-
-    virtual void Create(const string file_path) = 0;
-    void ReadFile(const string file_path, string *src);
+protected:
+    string ReadFile(const string file_path);
 };
 
 #endif // __PROGRAM_H

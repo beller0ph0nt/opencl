@@ -5,20 +5,12 @@
 
 class ProgramSource : public Program
 {
+private:
+    string _source;
+    string _source_path;
+
 public:
-    ProgramSource(Context *context, const string file_path):Program(context)
-    {
-        try
-        {
-            Create(file_path);
-        }
-        catch (int e)
-        {
-            throw e;
-        }
-    }
-protected:
-    void Create(const string file_path);
+    ProgramSource(Context *context, const string source_path);
 };
 
 #endif // __PROGRAM_SOURCE_H

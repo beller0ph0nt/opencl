@@ -1,120 +1,84 @@
 #include "Context.h"
+#include "OpenCLWrappers.h"
 
-Context::Context(const cl_device_type dev_type)
+Context::Context(const cl_device_type deviceType)
 {
-    if (clGetPlatformIDs(0, NULL, &plat_count) == CL_SUCCESS)
+    deviceCount_ = new cl_uint[Platform::getCount()];
+    device_ = new cl_device_id*[Platform::getCount()];
+
+    context_ = new cl_context*[Platform::getCount()];
+    commandQueue_ = new cl_command_queue*[Platform::getCount()];
+
+    for (cl_uint p = 0; p < Platform::getCount(); p++)
     {
-        plat = new cl_platform_id[plat_count];
+        _wrp_clGetDeviceIDs(Platform::get(p), deviceType, 0, NULL, &deviceCount_[p]);
 
-        if (clGetPlatformIDs(plat_count, plat, NULL) == CL_SUCCESS)
+        totalDeviceCount_ += deviceCount_[p];
+
+        device_[p] = new cl_device_id[deviceCount_[p]];
+        context_[p] = new cl_context[deviceCount_[p]];
+        commandQueue_[p] = new cl_command_queue[deviceCount_[p]];
+
+        clGetDeviceIDs(Platform::get(p), deviceType, deviceCount_[p], device_[p], NULL);
+
+        for (cl_uint d = 0; d < deviceCount_[p]; d++)
         {
-            dev_count = new cl_uint[plat_count];
-            dev = new cl_device_id*[plat_count];
-            context = new cl_context*[plat_count];
-            cmd = new cl_command_queue*[plat_count];
-
-            for (cl_uint p = 0; p < plat_count; p++)
+            cl_context_properties properties[3] =
             {
-                if (clGetDeviceIDs(plat[p],
-                                   dev_type,
-                                   0,
-                                   NULL,
-                                   &dev_count[p]) == CL_SUCCESS)
-                {
-                    total_dev_count += dev_count[p];
-                    dev[p] = new cl_device_id[dev_count[p]];
-                    context[p] = new cl_context[dev_count[p]];
-                    cmd[p] = new cl_command_queue[dev_count[p]];
+                CL_CONTEXT_PLATFORM,
+                (cl_context_properties) Platform::get(p),
+                0
+            };
 
-                    if (clGetDeviceIDs(plat[p],
-                                       dev_type,
-                                       dev_count[p],
-                                       dev[p],
-                                       NULL) == CL_SUCCESS)
-                    {
-                        cl_context_properties properties[3] = {
-                            CL_CONTEXT_PLATFORM,
-                            (cl_context_properties) plat[p],
-                            0
-                        };
-
-                        for (cl_uint d = 0; d < dev_count[p]; d++)
-                        {
-                            cl_int err;
-                            context[p][d] = clCreateContext(properties,
-                                                            1,
-                                                            &dev[p][d],
-                                                            NULL,
-                                                            NULL,
-                                                            &err);
-                            if (err == CL_SUCCESS)
-                            {
-                                cmd[p][d] = clCreateCommandQueue(context[p][d],
-                                                                 dev[p][d],
-                                                                 CL_QUEUE_PROFILING_ENABLE,
-                                                                 &err);
-                                if (err != CL_SUCCESS)
-                                {
-                                    throw 1;
-                                }
-                            }
-                            else
-                            {
-                                throw 2;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        throw 3;
-                    }
-                }
-                else
-                {
-                    throw 4;
-                }
-            }
+            context_[p][d] = _wrp_clCreateContext(properties, 1, &device_[p][d], NULL, NULL);
+            commandQueue_[p][d] = _wrp_clCreateCommandQueue(context_[p][d], device_[p][d], CL_QUEUE_PROFILING_ENABLE);
         }
-        else
-        {
-            throw 5;
-        }
-    }
-    else
-    {
-        throw 6;
     }
 }
 
 Context::~Context()
 {
-    for (cl_uint p = 0; p < plat_count; p++)
+    for (cl_uint p = 0; p < Platform::getCount(); p++)
     {
-        for (cl_uint d = 0; d < dev_count[p]; d++)
+        for (cl_uint d = 0; d < deviceCount_[p]; d++)
         {
-            cl_int err;
-            err = clReleaseCommandQueue(cmd[p][d]);
-            if (err != CL_SUCCESS)
-            {
-                throw 1;
-            }
-
-            err = clReleaseContext(context[p][d]);
-            if (err != CL_SUCCESS)
-            {
-                throw 2;
-            }
+            _wrp_clReleaseCommandQueue(commandQueue_[p][d]);
+            _wrp_clReleaseContext(context_[p][d]);
         }
 
-        delete[] cmd[p];
-        delete[] context[p];
-        delete[] dev[p];
+        delete[] commandQueue_[p];
+        delete[] context_[p];
+        delete[] device_[p];
     }
 
-    delete[] cmd;
-    delete[] context;
-    delete[] dev;
+    delete[] commandQueue_;
+    delete[] context_;
+    delete[] device_;
 
-    delete[] dev_count;
-    delete[] plat;
+    delete[] deviceCount_;
+//    delete[] platform_;
+}
+
+cl_uint Context::getDeviceCount() const
+{
+    return totalDeviceCount_;
+}
+
+cl_uint Context::getDeviceCount(cl_uint platformIndex) const
+{
+    return deviceCount_[platformIndex];
+}
+
+cl_device_id Context::getDevice(cl_uint platformIndex, cl_uint deviceIndex) const
+{
+    return device_[platformIndex][deviceIndex];
+}
+
+cl_context Context::get(cl_uint platformIndex, cl_uint deviceIndex) const
+{
+    return context_[platformIndex][deviceIndex];
+}
+
+cl_command_queue Context::getCommandQueue(cl_uint platformIndex, cl_uint deviceIndex) const
+{
 }

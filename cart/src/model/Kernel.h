@@ -18,15 +18,16 @@ typedef struct
 
 class Kernel
 {
-private:
-    cl_kernel **kernel = NULL;
-    KernelProp **prop = NULL;
-    Program *prog;
 public:
     Kernel(Program *p):prog(p) {}
     ~Kernel();
 
     virtual void Calc(KernelCalcParam p) = 0;
+
+private:
+    cl_kernel **kernel = NULL;
+    KernelProp **prop = NULL;
+    Program *prog;
 };
 
 #endif // __KERNEL_H

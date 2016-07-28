@@ -3,8 +3,7 @@
 
 Context::Context(const cl_device_type deviceType)
 {
-    deviceCount_ = new cl_uint[Platform::getCount()];
-    device_ = new cl_device_id*[Platform::getCount()];
+
 
     context_ = new cl_context*[Platform::getCount()];
     commandQueue_ = new cl_command_queue*[Platform::getCount()];
@@ -18,8 +17,6 @@ Context::Context(const cl_device_type deviceType)
         device_[p] = new cl_device_id[deviceCount_[p]];
         context_[p] = new cl_context[deviceCount_[p]];
         commandQueue_[p] = new cl_command_queue[deviceCount_[p]];
-
-        clGetDeviceIDs(Platform::get(p), deviceType, deviceCount_[p], device_[p], NULL);
 
         for (cl_uint d = 0; d < deviceCount_[p]; d++)
         {

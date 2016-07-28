@@ -9,13 +9,18 @@
 
 class Device : public Platform
 {
+private:
+    cl_uint totalDeviceCount_ = 0;
+    cl_uint* deviceCount_ = NULL;
+    cl_device_id** device_ = NULL;
+
 public:
     Device();
     ~Device();
 
-private:
-    cl_uint totalDeviceCount_ = 0;
-    cl_uint* deviceCount_ = NULL;
+    inline cl_uint getTotalCount() const;
+    inline cl_uint getCount(cl_uint platformIndex) const;
+    inline cl_device_id get(cl_uint platformIndex, cl_uint deviceIndex) const;
 }
 
 #endif // __DEVICE_H

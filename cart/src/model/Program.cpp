@@ -18,4 +18,6 @@ string Program::ReadFile(const string file_path)
     string src = buffer.str();
     buffer.clear();
     file.close();
+
+    return src;
 }

@@ -1,4 +1,8 @@
+CC = $(CROSS_COMPILE)gcc
+CFLAGS = -v
+LIBS = -lOpenCL
+
 hello: main.c
-	gcc -v -o $@ main.c -lOpenCL
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 clean:
-	rm hello
+	rm -f *.o hello

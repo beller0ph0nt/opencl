@@ -1,8 +1,0 @@
-env = Environment()
-
-env['CCFLAGS'] = ['-Wall']
-env['CPPPATH'] = ['/opt/AMDAPPSDK-3.0/include']
-env['LIBPATH'] = ['/opt/AMDAPPSDK-3.0/lib/x86_64']
-env['LIBS'] = ['OpenCL']
-
-SConscript(dirs = '.', variant_dir = 'build', exports = 'env')

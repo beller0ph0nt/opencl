@@ -1,6 +1,12 @@
-#ifndef __WRAP_MEMORY_H
-#define __WRAP_MEMORY_H
+#ifndef __WRAP_STDLIB_H
+#define __WRAP_STDLIB_H
 
-void* _wrp_malloc(size_t size);
+#include <stdlib.h>
 
-#endif // __WRAP_MEMORY_H
+void*
+_wrp_malloc(size_t size);
+
+void
+_w_free(void *ptr);
+
+#endif // __WRAP_STDLIB_H

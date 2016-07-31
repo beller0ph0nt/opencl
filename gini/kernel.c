@@ -17,13 +17,24 @@ kernel_t* kernel_create(const context_t* context, const program_t* prog)
     int plat, dev;
     for (plat = 0; plat < context->plat_count; plat++)
     {
-        kern->kernels[plat] = _wrp_malloc(sizeof(**kern->kernels) * context->dev_on_plat[plat]);
-        kern->prop[plat] = _wrp_malloc(sizeof(**kern->prop) * context->dev_on_plat[plat]);
+        kern->kernels[plat] =
+            _wrp_malloc(sizeof(**kern->kernels) * context->dev_on_plat[plat]);
+
+        kern->prop[plat] =
+            _wrp_malloc(sizeof(**kern->prop) * context->dev_on_plat[plat]);
 
         for (dev = 0; dev < context->dev_on_plat[plat]; dev++)
         {
-            kern->kernels[plat][dev] = _wrp_clCreateKernel(prog->programs[plat][dev], prog->prog_name);
-            _wrp_clGetKernelWorkGroupInfo(kern->kernels[plat][dev], context->dev[plat][dev], CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(kern->prop[plat][dev].pref_work_group_size_mult), &kern->prop[plat][dev].pref_work_group_size_mult, NULL);
+            kern->kernels[plat][dev] =
+                _w_clCreateKernel(prog->programs[plat][dev],
+                                  prog->prog_name);
+
+            _w_clGetKernelWorkGroupInfo(kern->kernels[plat][dev],
+                context->dev[plat][dev],
+                CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
+                sizeof(kern->prop[plat][dev].pref_work_group_size_mult),
+                &kern->prop[plat][dev].pref_work_group_size_mult,
+                NULL);
         }
     }
 
@@ -40,7 +51,7 @@ void kernel_clear(const context_t *context, kernel_t* kernel)
     {
         for (j = 0; j < context->dev_on_plat[i]; j++)
         {
-            _wrp_clReleaseKernel(kernel->kernels[i][j]);
+            _w_clReleaseKernel(kernel->kernels[i][j]);
         }
     }
 

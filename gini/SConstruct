@@ -1,6 +1,7 @@
 env = Environment()
 
 env['CCFLAGS'] = ['-Wall']
+env['CPPDEFINES'] = ['DEBUG']
 env['CPPPATH'] = ['/opt/AMDAPPSDK-3.0/include']
 env['LIBPATH'] = ['/opt/AMDAPPSDK-3.0/lib/x86_64']
 env['LIBS'] = ['OpenCL']
